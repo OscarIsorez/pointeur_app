@@ -10,11 +10,9 @@ class AppTheme {
         primary: AppColors.primaryTeal,
         secondary: AppColors.chartBlue,
         surface: AppColors.surfaceLight,
-        background: AppColors.backgroundLight,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
       ),
       scaffoldBackgroundColor: AppColors.backgroundLight,
       appBarTheme: const AppBarTheme(
@@ -54,11 +52,9 @@ class AppTheme {
         primary: AppColors.primaryTeal,
         secondary: AppColors.chartBlue,
         surface: AppColors.surfaceDark,
-        background: AppColors.backgroundDark,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: AppColors.textLight,
-        onBackground: AppColors.textLight,
       ),
       scaffoldBackgroundColor: AppColors.backgroundDark,
       appBarTheme: const AppBarTheme(

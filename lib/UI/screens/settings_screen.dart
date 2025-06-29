@@ -68,7 +68,7 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSettingsContent(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -107,7 +107,7 @@ class SettingsScreen extends StatelessWidget {
         border: Border.all(color: AppColors.gray200, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
