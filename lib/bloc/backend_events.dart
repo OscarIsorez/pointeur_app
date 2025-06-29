@@ -17,4 +17,14 @@ class FetchData extends Event {
 
   @override
   String toString() => 'FetchData';
-} 
+}
+
+class ToogleDarkMode extends Event {
+  const ToogleDarkMode();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'ToogleDarkMode';
+}
