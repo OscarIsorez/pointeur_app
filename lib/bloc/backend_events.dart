@@ -1,30 +1,39 @@
 import 'package:equatable/equatable.dart';
+import 'package:pointeur_app/models/work_settings.dart';
 
-abstract class Event extends Equatable {
-  const Event();
+abstract class BackendEvent extends Equatable {
+  const BackendEvent();
 
   @override
   List<Object?> get props => [];
 }
 
-/// Base class for all backend events.
+// Work tracking events
+class LoadTodaySessionEvent extends BackendEvent {}
 
-class FetchData extends Event {
-  const FetchData();
+class RecordArrivalEvent extends BackendEvent {}
+
+class RecordDepartureEvent extends BackendEvent {}
+
+class StartBreakEvent extends BackendEvent {}
+
+class EndBreakEvent extends BackendEvent {}
+
+// Settings events
+class LoadSettingsEvent extends BackendEvent {}
+
+class UpdateSettingsEvent extends BackendEvent {
+  final WorkSettings settings;
+
+  const UpdateSettingsEvent(this.settings);
 
   @override
-  List<Object?> get props => [];
-
-  @override
-  String toString() => 'FetchData';
+  List<Object?> get props => [settings];
 }
 
-class ToogleDarkMode extends Event {
-  const ToogleDarkMode();
+// Data loading events
+class LoadWeeklyDataEvent extends BackendEvent {}
 
-  @override
-  List<Object?> get props => [];
+class LoadMonthlySummaryEvent extends BackendEvent {}
 
-  @override
-  String toString() => 'ToogleDarkMode';
-}
+class RefreshAllDataEvent extends BackendEvent {}
