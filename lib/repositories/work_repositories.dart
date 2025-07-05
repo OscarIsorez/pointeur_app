@@ -159,6 +159,117 @@ class WorkSessionRepository
 
     return totalWorked - expectedWork;
   }
+
+  // Debug methods
+  /// Debug: Print all work sessions in memory
+  Future<void> debugPrintAllSessions() async {
+    print('\n=== DEBUG: All Work Sessions ===');
+    final sessions = await fetchAll();
+
+    if (sessions.isEmpty) {
+      print('No work sessions found in storage.');
+      return;
+    }
+
+    print('Found ${sessions.length} work session(s):');
+    for (int i = 0; i < sessions.length; i++) {
+      final session = sessions[i];
+      print('\n--- Session ${i + 1} ---');
+      print('ID: ${session.id}');
+      print('Date: ${_formatDate(session.date)}');
+      print(
+        'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
+      );
+      print(
+        'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
+      );
+      print('Is Complete: ${session.isComplete}');
+      print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
+      print('Has Active Break: ${session.hasActiveBreak}');
+      print('Number of Breaks: ${session.breaks.length}');
+    }
+    print('=== End Debug ===\n');
+  }
+
+  /// Debug: Print today's work session details
+  Future<void> debugPrintTodaySession() async {
+    print('\n=== DEBUG: Today\'s Work Session ===');
+    try {
+      final session = await getTodaySession();
+      print('Session ID: ${session.id}');
+      print('Date: ${_formatDate(session.date)}');
+      print(
+        'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
+      );
+      print(
+        'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
+      );
+      print('Is Complete: ${session.isComplete}');
+      print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
+      print('Has Active Break: ${session.hasActiveBreak}');
+      print('Number of Breaks: ${session.breaks.length}');
+
+      // Current status
+      String status = 'Unknown';
+      if (session.arrivalTime == null) {
+        status = 'Not started';
+      } else if (session.departureTime != null) {
+        status = 'Finished';
+      } else if (session.hasActiveBreak) {
+        status = 'On break';
+      } else {
+        status = 'Working';
+      }
+      print('Current Status: $status');
+    } catch (e) {
+      print('Error getting today\'s session: $e');
+    }
+    print('=== End Debug ===\n');
+  }
+
+  // Helper methods for formatting
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}m';
+    } else {
+      return '${minutes}m';
+    }
+  }
+
+  /// Delete today's work session
+  Future<void> deleteTodaySession() async {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    final sessions = await fetchAll();
+    final todaySession =
+        sessions.where((session) {
+          final sessionDate = DateTime(
+            session.date.year,
+            session.date.month,
+            session.date.day,
+          );
+          return sessionDate.isAtSameMomentAs(todayDate);
+        }).firstOrNull;
+
+    if (todaySession != null) {
+      await delete(todaySession.id);
+      print('🗑️ Deleted today\'s session (ID: ${todaySession.id})');
+    } else {
+      print('⚠️ No session found for today to delete');
+    }
+  }
 }
 
 class WorkSettingsRepository {
@@ -186,6 +297,26 @@ class WorkSettingsRepository {
   Future<void> resetSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_settingsKey);
+  }
+
+  // Debug methods
+  /// Debug: Print current settings
+  Future<void> debugPrintSettings() async {
+    print('\n=== DEBUG: Work Settings ===');
+    try {
+      final settings = await getSettings();
+      print('Daily Work Hours: ${settings.dailyWorkHours}');
+      print('Break Duration: ${settings.breakDuration.inMinutes} minutes');
+      print('Enable Notifications: ${settings.enableNotifications}');
+      print('Work Start Time: ${settings.workStartTime}');
+      print('Work End Time: ${settings.workEndTime}');
+      print(
+        'Daily Work Duration: ${settings.dailyWorkDuration.inHours}h ${settings.dailyWorkDuration.inMinutes.remainder(60)}m',
+      );
+    } catch (e) {
+      print('Error getting settings: $e');
+    }
+    print('=== End Debug ===\n');
   }
 }
 

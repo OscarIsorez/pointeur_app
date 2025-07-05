@@ -1,7 +1,7 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:pointeur_app/UI/screens/home_screen.dart';
+import 'package:pointeur_app/UI/screens/main_screen.dart';
 import 'package:pointeur_app/bloc/backend_bloc.dart';
 import 'theme/app_theme.dart';
 
@@ -21,7 +21,7 @@ class TimeTrackerApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
-        home: const HomeScreen(),
+        home: const MainScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );
