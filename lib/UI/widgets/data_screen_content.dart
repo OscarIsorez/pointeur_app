@@ -5,6 +5,7 @@ import 'package:pointeur_app/bloc/backend_bloc.dart';
 import 'package:pointeur_app/bloc/backend_events.dart';
 import 'package:pointeur_app/bloc/backend_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
+import 'package:pointeur_app/UI/widgets/weekly_work_chart.dart';
 
 class DataScreenContent extends StatefulWidget {
   const DataScreenContent({super.key});
@@ -19,6 +20,8 @@ class _DataScreenContentState extends State<DataScreenContent> {
     super.initState();
     // Load initial data
     context.read<BackendBloc>().add(LoadTodaySessionEvent());
+    context.read<BackendBloc>().add(LoadWeeklyDataEvent());
+    context.read<BackendBloc>().add(LoadSettingsEvent());
   }
 
   @override
@@ -155,39 +158,8 @@ class _DataScreenContentState extends State<DataScreenContent> {
 
                           const SizedBox(height: 16),
 
-                          // Chart placeholder
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.show_chart,
-                                      size: 64,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.7,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Graphiques bientôt disponibles',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.8,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                          // Weekly work time chart
+                          const WeeklyWorkTimeChart(),
                         ],
                       );
                     }

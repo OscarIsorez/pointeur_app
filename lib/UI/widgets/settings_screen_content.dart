@@ -399,6 +399,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent> {
     );
   }
 
+  /// Update form fields with loaded settings
   void _updateFormWithSettings(WorkSettings settings) {
     _dailyHoursController.text = settings.dailyWorkHours.toString();
     _breakDurationController.text = settings.breakDuration.inMinutes.toString();
