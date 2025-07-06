@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
 import 'package:pointeur_app/bloc/backend_bloc.dart';
 import 'package:pointeur_app/bloc/backend_states.dart';
-import 'package:pointeur_app/models/work_session.dart';
 import 'package:pointeur_app/models/work_settings.dart';
 
 class WeeklyWorkTimeChart extends StatefulWidget {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
@@ -337,7 +338,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
 
   // Debug method - remove in production
   void _showDebugInfo() async {
-    print('\n🐛 Debug Info Requested from UI');
+    if (kDebugMode) {
+      print('\n🐛 Debug Info Requested from UI');
+    }
     await WorkDebugHelper.printAllDebugInfo();
 
     // Also show a snackbar to confirm
@@ -378,7 +381,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     );
 
     if (confirmed == true) {
-      print('\n🗑️ Delete Today\'s Session Requested from UI');
+      if (kDebugMode) {
+        print('\n🗑️ Delete Today\'s Session Requested from UI');
+      }
       await WorkDebugHelper.deleteTodaySession();
 
       // Refresh the data after deletion

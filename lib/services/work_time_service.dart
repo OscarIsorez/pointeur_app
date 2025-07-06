@@ -1,5 +1,6 @@
 import 'package:pointeur_app/models/work_session.dart';
 import 'package:pointeur_app/models/work_settings.dart';
+import 'package:pointeur_app/repositories/settings_repository.dart';
 import 'package:pointeur_app/repositories/work_repositories.dart';
 
 enum WorkStatus { notStarted, working, onBreak, finished }

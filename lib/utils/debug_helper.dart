@@ -1,3 +1,4 @@
+import 'package:pointeur_app/repositories/settings_repository.dart';
 import 'package:pointeur_app/repositories/work_repositories.dart';
 
 /// Debug utility class for work session and settings debugging

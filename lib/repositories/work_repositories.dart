@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pointeur_app/bloc/backend_repository_internal_storage.dart';
 import 'package:pointeur_app/models/work_session.dart';
 import 'package:pointeur_app/models/work_settings.dart';
@@ -163,68 +162,72 @@ class WorkSessionRepository
   // Debug methods
   /// Debug: Print all work sessions in memory
   Future<void> debugPrintAllSessions() async {
-    print('\n=== DEBUG: All Work Sessions ===');
-    final sessions = await fetchAll();
+    if (kDebugMode) {
+      print('\n=== DEBUG: All Work Sessions ===');
+      final sessions = await fetchAll();
 
-    if (sessions.isEmpty) {
-      print('No work sessions found in storage.');
-      return;
-    }
+      if (sessions.isEmpty) {
+        print('No work sessions found in storage.');
+        return;
+      }
 
-    print('Found ${sessions.length} work session(s):');
-    for (int i = 0; i < sessions.length; i++) {
-      final session = sessions[i];
-      print('\n--- Session ${i + 1} ---');
-      print('ID: ${session.id}');
-      print('Date: ${_formatDate(session.date)}');
-      print(
-        'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
-      );
-      print(
-        'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
-      );
-      print('Is Complete: ${session.isComplete}');
-      print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
-      print('Has Active Break: ${session.hasActiveBreak}');
-      print('Number of Breaks: ${session.breaks.length}');
+      print('Found ${sessions.length} work session(s):');
+      for (int i = 0; i < sessions.length; i++) {
+        final session = sessions[i];
+        print('\n--- Session ${i + 1} ---');
+        print('ID: ${session.id}');
+        print('Date: ${_formatDate(session.date)}');
+        print(
+          'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
+        );
+        print(
+          'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
+        );
+        print('Is Complete: ${session.isComplete}');
+        print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
+        print('Has Active Break: ${session.hasActiveBreak}');
+        print('Number of Breaks: ${session.breaks.length}');
+      }
+      print('=== End Debug ===\n');
     }
-    print('=== End Debug ===\n');
   }
 
   /// Debug: Print today's work session details
   Future<void> debugPrintTodaySession() async {
-    print('\n=== DEBUG: Today\'s Work Session ===');
-    try {
-      final session = await getTodaySession();
-      print('Session ID: ${session.id}');
-      print('Date: ${_formatDate(session.date)}');
-      print(
-        'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
-      );
-      print(
-        'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
-      );
-      print('Is Complete: ${session.isComplete}');
-      print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
-      print('Has Active Break: ${session.hasActiveBreak}');
-      print('Number of Breaks: ${session.breaks.length}');
+    if (kDebugMode) {
+      print('\n=== DEBUG: Today\'s Work Session ===');
+      try {
+        final session = await getTodaySession();
+        print('Session ID: ${session.id}');
+        print('Date: ${_formatDate(session.date)}');
+        print(
+          'Arrival: ${session.arrivalTime != null ? _formatTime(session.arrivalTime!) : 'Not set'}',
+        );
+        print(
+          'Departure: ${session.departureTime != null ? _formatTime(session.departureTime!) : 'Not set'}',
+        );
+        print('Is Complete: ${session.isComplete}');
+        print('Total Work Time: ${_formatDuration(session.totalWorkTime)}');
+        print('Has Active Break: ${session.hasActiveBreak}');
+        print('Number of Breaks: ${session.breaks.length}');
 
-      // Current status
-      String status = 'Unknown';
-      if (session.arrivalTime == null) {
-        status = 'Not started';
-      } else if (session.departureTime != null) {
-        status = 'Finished';
-      } else if (session.hasActiveBreak) {
-        status = 'On break';
-      } else {
-        status = 'Working';
+        // Current status
+        String status = 'Unknown';
+        if (session.arrivalTime == null) {
+          status = 'Not started';
+        } else if (session.departureTime != null) {
+          status = 'Finished';
+        } else if (session.hasActiveBreak) {
+          status = 'On break';
+        } else {
+          status = 'Working';
+        }
+        print('Current Status: $status');
+      } catch (e) {
+        print('Error getting today\'s session: $e');
       }
-      print('Current Status: $status');
-    } catch (e) {
-      print('Error getting today\'s session: $e');
+      print('=== End Debug ===\n');
     }
-    print('=== End Debug ===\n');
   }
 
   // Helper methods for formatting
@@ -265,65 +268,13 @@ class WorkSessionRepository
 
     if (todaySession != null) {
       await delete(todaySession.id);
-      print('🗑️ Deleted today\'s session (ID: ${todaySession.id})');
+      if (kDebugMode) {
+        print('🗑️ Deleted today\'s session (ID: ${todaySession.id})');
+      }
     } else {
-      print('⚠️ No session found for today to delete');
+      if (kDebugMode) {
+        print('⚠️ No session found for today to delete');
+      }
     }
-  }
-}
-
-class WorkSettingsRepository {
-  static const String _settingsKey = 'work_settings';
-
-  Future<WorkSettings> getSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_settingsKey);
-
-    if (jsonString == null) {
-      // Return default settings
-      return const WorkSettings();
-    }
-
-    final jsonMap = json.decode(jsonString) as Map<String, dynamic>;
-    return WorkSettings.fromJson(jsonMap);
-  }
-
-  Future<WorkSettings> updateSettings(WorkSettings settings) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_settingsKey, json.encode(settings.toJson()));
-    return settings;
-  }
-
-  Future<void> resetSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_settingsKey);
-  }
-
-  // Debug methods
-  /// Debug: Print current settings
-  Future<void> debugPrintSettings() async {
-    print('\n=== DEBUG: Work Settings ===');
-    try {
-      final settings = await getSettings();
-      print('Daily Work Hours: ${settings.dailyWorkHours}');
-      print('Break Duration: ${settings.breakDuration.inMinutes} minutes');
-      print('Enable Notifications: ${settings.enableNotifications}');
-      print('Work Start Time: ${settings.workStartTime}');
-      print('Work End Time: ${settings.workEndTime}');
-      print(
-        'Daily Work Duration: ${settings.dailyWorkDuration.inHours}h ${settings.dailyWorkDuration.inMinutes.remainder(60)}m',
-      );
-    } catch (e) {
-      print('Error getting settings: $e');
-    }
-    print('=== End Debug ===\n');
-  }
-}
-
-// Extension to add firstOrNull method if not available
-extension IterableExtension<T> on Iterable<T> {
-  T? get firstOrNull {
-    if (isEmpty) return null;
-    return first;
   }
 }
