@@ -85,7 +85,6 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
             ),
           );
         }
-
         return Container(
           height: 200,
           padding: const EdgeInsets.all(16),
@@ -110,11 +109,21 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
                   aspectRatio: 2.0,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final barsSpace = 4.0 * constraints.maxWidth / 400;
-                      final barsWidth = 20.0 * constraints.maxWidth / 400;
+                      // Better spacing calculations for 7 bars
+                      final availableWidth =
+                          constraints.maxWidth - 60; // Reserve space for labels
+                      final totalBarsWidth =
+                          availableWidth * 0.7; // Use 70% for bars
+                      final totalSpaceWidth =
+                          availableWidth * 0.3; // Use 30% for spacing
+
+                      final barsWidth =
+                          totalBarsWidth / 7; // Divide equally among 7 days
+                      final barsSpace =
+                          totalSpaceWidth / 6; // 6 spaces between 7 bars
                       return BarChart(
                         BarChartData(
-                          alignment: BarChartAlignment.center,
+                          alignment: BarChartAlignment.spaceAround,
                           maxY: _getMaxY(state.settings),
                           barTouchData: BarTouchData(
                             enabled: true,
