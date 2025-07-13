@@ -41,8 +41,6 @@ class WorkSettingsRepository {
         print('Daily Work Hours: ${settings.dailyWorkHours}');
         print('Break Duration: ${settings.breakDuration.inMinutes} minutes');
         print('Enable Notifications: ${settings.enableNotifications}');
-        print('Work Start Time: ${settings.workStartTime}');
-        print('Work End Time: ${settings.workEndTime}');
         print(
           'Daily Work Duration: ${settings.dailyWorkDuration.inHours}h ${settings.dailyWorkDuration.inMinutes.remainder(60)}m',
         );

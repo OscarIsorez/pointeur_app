@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:pointeur_app/bloc/backend_repository_internal_storage.dart';
+import 'package:pointeur_app/models/break_model.dart';
 import 'package:pointeur_app/models/work_session.dart';
 import 'package:pointeur_app/models/work_settings.dart';
 
