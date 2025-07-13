@@ -14,6 +14,8 @@ class WorkSettings {
     minutes: ((dailyWorkHours - dailyWorkHours.floor()) * 60).round(),
   );
 
+  
+
   WorkSettings copyWith({
     double? dailyWorkHours,
     Duration? breakDuration,

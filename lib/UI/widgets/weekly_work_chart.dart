@@ -106,16 +106,15 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
               const SizedBox(height: 16),
               Expanded(
                 child: AspectRatio(
-                  aspectRatio: 2.0,
+                  aspectRatio: 3.0,
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       // Better spacing calculations for 7 bars
-                      final availableWidth =
-                          constraints.maxWidth - 60; // Reserve space for labels
+                      final availableWidth = constraints.maxWidth - 20;
                       final totalBarsWidth =
                           availableWidth * 0.7; // Use 70% for bars
                       final totalSpaceWidth =
-                          availableWidth * 0.3; // Use 30% for spacing
+                          availableWidth * 0.4; // Use 30% for spacing
 
                       final barsWidth =
                           totalBarsWidth / 7; // Divide equally among 7 days
@@ -137,10 +136,10 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
                               ) {
                                 final dayName = _getDayName(groupIndex);
                                 final hours = rod.toY;
-                                final expectedHours =
-                                    state.settings?.dailyWorkHours ?? 8.0;
+                                final expectedTotalWorkTime =
+                                    state.settings?.dailyWorkDuration;
                                 return BarTooltipItem(
-                                  '$dayName\n${hours.toStringAsFixed(1)}h / ${expectedHours}h',
+                                  '$dayName\n${_formatToHHMM(hours)} / ${_formatToHHMM(expectedTotalWorkTime)}',
                                   const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -300,5 +299,22 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
         ),
       ],
     );
+  }
+
+  String _formatToHHMM(dynamic timeValue) {
+    late final int hours;
+    late final int minutes;
+
+    if (timeValue is double) {
+      hours = timeValue.floor();
+      minutes = ((timeValue - hours) * 60).round();
+    } else if (timeValue is Duration?) {
+      hours = timeValue?.inHours ?? 0;
+      minutes = timeValue?.inMinutes.remainder(60) ?? 0;
+    } else {
+      throw ArgumentError('timeValue must be either double or Duration');
+    }
+
+    return '$hours:${minutes.toString().padLeft(2, '0')}';
   }
 }
