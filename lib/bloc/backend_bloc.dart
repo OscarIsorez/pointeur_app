@@ -200,7 +200,7 @@ class BackendBloc extends Bloc<BackendEvent, BackendState> {
     UpdateSettingsEvent event,
     Emitter<BackendState> emit,
   ) async {
-    emit(BackendLoadingState());
+    // Don't emit loading state to preserve existing data on other screens
     try {
       final settings = await _workTimeService.updateSettings(event.settings);
 
@@ -213,9 +213,20 @@ class BackendBloc extends Bloc<BackendEvent, BackendState> {
           ),
         );
       } else {
+        // Load all necessary data when creating a new BackendLoadedState
+        emit(
+          BackendLoadingState(),
+        ); // Only emit loading if we need to load all data
+        final todaySession = await _workTimeService.getTodaySession();
+        final currentStatus = await _workTimeService.getCurrentStatus();
+        final weeklyData = await _workTimeService.getWeeklyWorkData();
+
         emit(
           BackendLoadedState(
             settings: settings,
+            todaySession: todaySession,
+            currentStatus: currentStatus,
+            weeklyData: weeklyData,
             successMessage: 'Settings updated successfully!',
           ),
         );

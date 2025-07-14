@@ -28,10 +28,11 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
   final _endTimeController = TextEditingController();
 
   // Scroll controllers for the CupertinoPickers
-  late final FixedExtentScrollController _hoursScrollController;
-  late final FixedExtentScrollController _minutesScrollController;
+  late FixedExtentScrollController _hoursScrollController;
+  late FixedExtentScrollController _minutesScrollController;
 
   bool _notificationsEnabled = true;
+  bool _hasBeenInitialized = false;
 
   // Values for the roller pickers - will be initialized from settings
   int _selectedHours = 8; // Default fallback
@@ -41,7 +42,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
   void initState() {
     super.initState();
 
-    // Initialize scroll controllers with default values
+    // Initialize with defaults first
     _hoursScrollController = FixedExtentScrollController(
       initialItem: _selectedHours,
     );
@@ -49,7 +50,39 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       initialItem: _selectedMinutes ~/ 5,
     );
 
+    // Initialize text controllers with default values
+    _breakDurationController.text = '30'; // Default break duration
+
+    // Check if settings are already available and use them
+    final currentState = context.read<BackendBloc>().state;
+    if (currentState is BackendLoadedState && currentState.settings != null) {
+      _initializeWithSettings(currentState.settings!);
+    }
+
     _loadDataIfNeeded();
+  }
+
+  /// Initialize form fields with settings without animations (for initial load)
+  void _initializeWithSettings(WorkSettings settings) {
+    if (_hasBeenInitialized) return;
+
+    final totalMinutes = (settings.dailyWorkHours * 60).round();
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+
+    // Update state variables
+    _selectedHours = hours;
+    _selectedMinutes = (minutes ~/ 5) * 5;
+    _notificationsEnabled = settings.enableNotifications;
+
+    // Update text controllers
+    _breakDurationController.text = settings.breakDuration.inMinutes.toString();
+
+    // Jump to the correct positions without animation for initial load
+    _hoursScrollController.jumpToItem(hours);
+    _minutesScrollController.jumpToItem(_selectedMinutes ~/ 5);
+
+    _hasBeenInitialized = true;
   }
 
   void _loadDataIfNeeded() {
@@ -65,6 +98,9 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       // Check if we have the data we need for this screen
       if (currentState.settings == null) {
         needsToLoad = true;
+      } else {
+        // If we already have settings, update the form immediately
+        _updateFormWithSettings(currentState.settings!);
       }
     }
 
@@ -140,7 +176,14 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                             ),
                           );
                         } else if (state is BackendLoadedState) {
-                          if (state.successMessage != null) {}
+                          if (state.successMessage != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(state.successMessage!),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
                           // Update form with loaded settings
                           if (state.settings != null) {
                             _updateFormWithSettings(state.settings!);
@@ -331,6 +374,12 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                                     style: const TextStyle(color: Colors.white),
                                     decoration: InputDecoration(
                                       labelText: 'Minutes par pause',
+                                      hintText: '30', // Default value hint
+                                      hintStyle: TextStyle(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.5,
+                                        ),
+                                      ),
                                       labelStyle: TextStyle(
                                         color: Colors.white.withValues(
                                           alpha: 0.8,
@@ -453,6 +502,12 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
 
   /// Update form fields with loaded settings
   void _updateFormWithSettings(WorkSettings settings) {
+    // If not initialized yet, use the initialization method instead
+    if (!_hasBeenInitialized) {
+      _initializeWithSettings(settings);
+      return;
+    }
+
     // Convert decimal hours to hours and minutes
     final totalMinutes = (settings.dailyWorkHours * 60).round();
     final hours = totalMinutes ~/ 60;
@@ -465,7 +520,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       _notificationsEnabled = settings.enableNotifications;
     });
 
-    // Update the scroll controllers to show the correct values
+    // Update the scroll controllers to show the correct values with animation
     _hoursScrollController.animateToItem(
       hours,
       duration: const Duration(milliseconds: 300),
@@ -478,11 +533,10 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       curve: Curves.easeInOut,
     );
 
+    // Update text controllers with the loaded values
     _dailyHoursController.text = hours.toString();
     _dailyMinutesController.text = minutes.toString();
     _breakDurationController.text = settings.breakDuration.inMinutes.toString();
-
-    // Parse time strings (format: "HH:mm")
   }
 
   void _saveSettings() {
