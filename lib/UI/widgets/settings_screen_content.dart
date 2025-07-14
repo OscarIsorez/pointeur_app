@@ -350,7 +350,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                                       ),
                                       const SizedBox(height: 12),
                                       Text(
-                                        'Total: ${_selectedHours}h ${_selectedMinutes}min',
+                                        'Sélectionné: ${_selectedHours}h ${_selectedMinutes}min',
                                         style: TextStyle(
                                           color: Colors.white.withValues(
                                             alpha: 0.9,

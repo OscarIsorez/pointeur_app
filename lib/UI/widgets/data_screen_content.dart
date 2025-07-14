@@ -174,7 +174,10 @@ class _DataScreenContentState extends State<DataScreenContent>
                                     ),
                                     _buildStatCard(
                                       'Pauses',
-                                      '${state.todaySession?.breaks.length ?? 0}',
+                                      _formatBreaksInfo(
+                                        state.todaySession,
+                                        state.settings,
+                                      ),
                                       Icons.coffee,
                                     ),
                                   ],
@@ -189,6 +192,14 @@ class _DataScreenContentState extends State<DataScreenContent>
                           WeeklyWorkTimeChart(
                             weeklyData: state.weeklyData,
                             settings: state.settings,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Weekly overtime summary
+                          _buildWeeklyOvertimeSummary(
+                            state.weeklyData,
+                            state.settings,
                           ),
                         ],
                       );
@@ -231,6 +242,176 @@ class _DataScreenContentState extends State<DataScreenContent>
               fontSize: 12,
               color: Colors.white.withValues(alpha: 0.8),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Format breaks information showing count and total duration
+  String _formatBreaksInfo(dynamic todaySession, dynamic settings) {
+    if (todaySession == null) return '0';
+
+    final breakCount = todaySession.breaks?.length ?? 0;
+    if (breakCount == 0) return '0';
+
+    // Calculate actual total break duration from the breaks
+    Duration totalBreakDuration = Duration.zero;
+    for (final breakPeriod in todaySession.breaks) {
+      if (breakPeriod.endTime != null) {
+        // Only count completed breaks
+        totalBreakDuration += breakPeriod.duration;
+      } else {
+        // For ongoing breaks, use the default duration from settings
+        final defaultDuration =
+            settings?.breakDuration ?? Duration(minutes: 30);
+        totalBreakDuration += defaultDuration;
+      }
+    }
+
+    final formattedDuration = WorkTimeService().formatDuration(
+      totalBreakDuration,
+    );
+    return '$breakCount ($formattedDuration)';
+  }
+
+  /// Build weekly overtime summary widget
+  Widget _buildWeeklyOvertimeSummary(dynamic weeklyData, dynamic settings) {
+    if (weeklyData == null || settings == null) {
+      return const SizedBox();
+    }
+
+    // Calculate total worked hours and expected hours this week
+    double totalWorkedHours = 0.0;
+    double totalExpectedHours = 0.0;
+
+    for (final dayData in weeklyData) {
+      totalWorkedHours += dayData.totalWorkHours;
+      totalExpectedHours += dayData.expectedWorkHours;
+    }
+
+    // Calculate overtime (can be negative)
+    final overtimeHours = totalWorkedHours - totalExpectedHours;
+    final isPositive = overtimeHours > 0;
+    final isZero = overtimeHours.abs() < 0.05; // Less than 3 minutes difference
+    final absOvertimeHours = overtimeHours.abs();
+
+    // Format the overtime duration
+    final overtimeDuration = Duration(
+      hours: absOvertimeHours.floor(),
+      minutes: ((absOvertimeHours - absOvertimeHours.floor()) * 60).round(),
+    );
+    final formattedOvertime = WorkTimeService().formatDuration(
+      overtimeDuration,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bilan hebdomadaire',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Temps travaillé',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    Text(
+                      WorkTimeService().formatDuration(
+                        Duration(
+                          hours: totalWorkedHours.floor(),
+                          minutes:
+                              ((totalWorkedHours - totalWorkedHours.floor()) *
+                                      60)
+                                  .round(),
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Attendu: ${WorkTimeService().formatDuration(Duration(hours: totalExpectedHours.floor(), minutes: ((totalExpectedHours - totalExpectedHours.floor()) * 60).round()))}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    isZero
+                        ? 'Objectif atteint'
+                        : (isPositive
+                            ? 'Heures supplémentaires'
+                            : 'Heures manquantes'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isZero
+                            ? Icons.check_circle
+                            : (isPositive
+                                ? Icons.trending_up
+                                : Icons.trending_down),
+                        color:
+                            isZero
+                                ? Colors.white
+                                : (isPositive ? Colors.green : Colors.orange),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isZero
+                            ? '✓'
+                            : '${isPositive ? '+' : '-'}$formattedOvertime',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isZero
+                                  ? Colors.white
+                                  : (isPositive ? Colors.green : Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
