@@ -27,15 +27,28 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
   final _startTimeController = TextEditingController();
   final _endTimeController = TextEditingController();
 
+  // Scroll controllers for the CupertinoPickers
+  late final FixedExtentScrollController _hoursScrollController;
+  late final FixedExtentScrollController _minutesScrollController;
+
   bool _notificationsEnabled = true;
 
-  // Values for the roller pickers
-  int _selectedHours = 8;
-  int _selectedMinutes = 0;
+  // Values for the roller pickers - will be initialized from settings
+  int _selectedHours = 8; // Default fallback
+  int _selectedMinutes = 0; // Default fallback
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize scroll controllers with default values
+    _hoursScrollController = FixedExtentScrollController(
+      initialItem: _selectedHours,
+    );
+    _minutesScrollController = FixedExtentScrollController(
+      initialItem: _selectedMinutes ~/ 5,
+    );
+
     _loadDataIfNeeded();
   }
 
@@ -67,6 +80,8 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
     _breakDurationController.dispose();
     _startTimeController.dispose();
     _endTimeController.dispose();
+    _hoursScrollController.dispose();
+    _minutesScrollController.dispose();
     super.dispose();
   }
 
@@ -189,10 +204,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                                                   child: CupertinoPicker(
                                                     itemExtent: 40,
                                                     scrollController:
-                                                        FixedExtentScrollController(
-                                                          initialItem:
-                                                              _selectedHours,
-                                                        ),
+                                                        _hoursScrollController,
                                                     onSelectedItemChanged: (
                                                       int index,
                                                     ) {
@@ -257,11 +269,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                                                   child: CupertinoPicker(
                                                     itemExtent: 40,
                                                     scrollController:
-                                                        FixedExtentScrollController(
-                                                          initialItem:
-                                                              _selectedMinutes ~/
-                                                              5,
-                                                        ),
+                                                        _minutesScrollController,
                                                     onSelectedItemChanged: (
                                                       int index,
                                                     ) {
@@ -456,6 +464,19 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       _selectedMinutes = (minutes ~/ 5) * 5;
       _notificationsEnabled = settings.enableNotifications;
     });
+
+    // Update the scroll controllers to show the correct values
+    _hoursScrollController.animateToItem(
+      hours,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+
+    _minutesScrollController.animateToItem(
+      _selectedMinutes ~/ 5,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
 
     _dailyHoursController.text = hours.toString();
     _dailyMinutesController.text = minutes.toString();
