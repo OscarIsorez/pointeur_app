@@ -139,6 +139,9 @@ class _DataScreenContentState extends State<DataScreenContent>
                         ),
                       );
                     } else if (state is BackendLoadedState) {
+                      if (state.weeklyData == null) {
+                        context.read<BackendBloc>().add(LoadWeeklyDataEvent());
+                      }
                       return Column(
                         children: [
                           // Today's summary

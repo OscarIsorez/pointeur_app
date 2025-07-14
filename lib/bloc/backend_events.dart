@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:pointeur_app/models/work_settings.dart';
+import 'package:pointeur_app/models/work_session.dart';
 
 abstract class BackendEvent extends Equatable {
   const BackendEvent();
@@ -18,6 +19,15 @@ class RecordDepartureEvent extends BackendEvent {}
 class StartBreakEvent extends BackendEvent {}
 
 class EndBreakEvent extends BackendEvent {}
+
+class UpdateSessionEvent extends BackendEvent {
+  final WorkSession session;
+
+  const UpdateSessionEvent(this.session);
+
+  @override
+  List<Object?> get props => [session];
+}
 
 // Settings events
 class LoadSettingsEvent extends BackendEvent {}

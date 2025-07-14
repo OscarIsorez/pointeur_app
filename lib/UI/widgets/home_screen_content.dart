@@ -7,6 +7,8 @@ import 'package:pointeur_app/bloc/backend_events.dart';
 import 'package:pointeur_app/bloc/backend_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
 import 'package:pointeur_app/utils/debug_helper.dart';
+import 'package:pointeur_app/UI/widgets/edit_session_dialog.dart';
+import 'package:pointeur_app/models/work_session.dart';
 
 class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
@@ -83,17 +85,27 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                       ),
                     ),
                     const Spacer(),
+                    // Edit session button - show when there's a session
+                    BlocBuilder<BackendBloc, BackendState>(
+                      builder: (context, state) {
+                        if (state is BackendLoadedState &&
+                            state.todaySession != null) {
+                          return IconButton(
+                            onPressed:
+                                () =>
+                                    _showEditSessionDialog(state.todaySession!),
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            tooltip: 'Edit Session',
+                          );
+                        }
+                        return const SizedBox();
+                      },
+                    ),
                     // Debug button - remove in production
                     IconButton(
                       onPressed: () => _showDebugInfo(),
                       icon: const Icon(Icons.bug_report, color: Colors.white),
                       tooltip: 'Debug Info',
-                    ),
-                    // Delete today's session button - remove in production
-                    IconButton(
-                      onPressed: () => _deleteTodaySession(),
-                      icon: const Icon(Icons.delete, color: Colors.white),
-                      tooltip: 'Delete Today\'s Session',
                     ),
                   ],
                 ),
@@ -214,13 +226,161 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                 ),
                                 const SizedBox(height: 8),
                                 if (session != null) ...[
+                                  // Show arrival and departure times in a more organized way
+                                  if (session.arrivalTime != null ||
+                                      session.departureTime != null) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceAround,
+                                        children: [
+                                          if (session.arrivalTime != null) ...[
+                                            Column(
+                                              children: [
+                                                Icon(
+                                                  Icons.login,
+                                                  color: Colors.green,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _formatTime(
+                                                    session.arrivalTime!,
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Arrivée',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.7),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+
+                                          if (session.departureTime !=
+                                              null) ...[
+                                            Column(
+                                              children: [
+                                                Icon(
+                                                  Icons.logout,
+                                                  color: Colors.orange,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _formatTime(
+                                                    session.departureTime!,
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Départ',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.7),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+
+                                  // Show current break start time if on break
+                                  if (isOnBreak &&
+                                      session.breaks.isNotEmpty) ...[
+                                    Builder(
+                                      builder: (context) {
+                                        final currentBreak =
+                                            session.breaks.last;
+                                        if (!currentBreak.isComplete) {
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  Icons.coffee,
+                                                  color: Colors.orange,
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Column(
+                                                  children: [
+                                                    Text(
+                                                      'Pause depuis ${_formatTime(currentBreak.startTime)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '(${_formatElapsedTime(currentBreak.duration)})',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.white
+                                                            .withValues(
+                                                              alpha: 0.8,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }
+                                        return const SizedBox();
+                                      },
+                                    ),
+                                    const SizedBox(height: 8),
+                                  ],
+
                                   Text(
                                     'Temps travaillé: ${WorkTimeService().formatDuration(session.totalWorkTime)}',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.8,
-                                      ),
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -361,6 +521,39 @@ class _HomeScreenContentState extends State<HomeScreenContent>
     );
   }
 
+  /// Format time to display hours and minutes (e.g., "09:30")
+  String _formatTime(DateTime dateTime) {
+    return '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  /// Format duration for elapsed time display (e.g., "1h 23min")
+  String _formatElapsedTime(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+
+    if (hours > 0) {
+      return '${hours}h ${minutes}min';
+    } else {
+      return '${minutes}min';
+    }
+  }
+
+  // Show edit session dialog
+  void _showEditSessionDialog(WorkSession session) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => EditSessionDialog(
+            session: session,
+            onSave: (updatedSession) {
+              context.read<BackendBloc>().add(
+                UpdateSessionEvent(updatedSession),
+              );
+            },
+          ),
+    );
+  }
+
   // Debug method - remove in production
   void _showDebugInfo() async {
     if (kDebugMode) {
@@ -380,49 +573,4 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   // Delete today's session method - remove in production
-  void _deleteTodaySession() async {
-    // Show confirmation dialog
-    final bool? confirmed = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirmer la suppression'),
-          content: const Text(
-            'Êtes-vous sûr de vouloir supprimer la session de travail d\'aujourd\'hui ? Cette action est irréversible.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Supprimer'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed == true) {
-      if (kDebugMode) {
-        print('\n🗑️ Delete Today\'s Session Requested from UI');
-      }
-      await WorkDebugHelper.deleteTodaySession();
-
-      // Refresh the data after deletion
-      if (mounted) {
-        context.read<BackendBloc>().add(LoadTodaySessionEvent());
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Session d\'aujourd\'hui supprimée'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-  }
 }

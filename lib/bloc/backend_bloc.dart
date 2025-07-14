@@ -15,6 +15,7 @@ class BackendBloc extends Bloc<BackendEvent, BackendState> {
     on<RecordDepartureEvent>(_onRecordDeparture);
     on<StartBreakEvent>(_onStartBreak);
     on<EndBreakEvent>(_onEndBreak);
+    on<UpdateSessionEvent>(_onUpdateSession);
 
     // Settings events
     on<LoadSettingsEvent>(_onLoadSettings);
@@ -175,6 +176,40 @@ class BackendBloc extends Bloc<BackendEvent, BackendState> {
       }
     } catch (e) {
       emit(BackendErrorState('Failed to end break: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onUpdateSession(
+    UpdateSessionEvent event,
+    Emitter<BackendState> emit,
+  ) async {
+    emit(BackendLoadingState());
+    try {
+      final updatedSession = await _workTimeService.updateSession(
+        event.session,
+      );
+      final status = await _workTimeService.getCurrentStatus();
+
+      if (state is BackendLoadedState) {
+        final currentState = state as BackendLoadedState;
+        emit(
+          currentState.copyWith(
+            todaySession: updatedSession,
+            currentStatus: status,
+            successMessage: 'Session updated successfully!',
+          ),
+        );
+      } else {
+        emit(
+          BackendLoadedState(
+            todaySession: updatedSession,
+            currentStatus: status,
+            successMessage: 'Session updated successfully!',
+          ),
+        );
+      }
+    } catch (e) {
+      emit(BackendErrorState('Failed to update session: ${e.toString()}'));
     }
   }
 

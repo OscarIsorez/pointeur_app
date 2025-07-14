@@ -98,6 +98,11 @@ class WorkTimeService {
     return await _settingsRepository.updateSettings(settings);
   }
 
+  /// Update a work session
+  Future<WorkSession> updateSession(WorkSession session) async {
+    return await _sessionRepository.update(session);
+  }
+
   /// Get work data for charts (last 7 days)
   Future<List<WorkDayData>> getWeeklyWorkData() async {
     final sessions = await _sessionRepository.getCurrentWeekSessions();
