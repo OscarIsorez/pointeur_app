@@ -15,7 +15,11 @@ class SettingsScreenContent extends StatefulWidget {
   State<SettingsScreenContent> createState() => _SettingsScreenContentState();
 }
 
-class _SettingsScreenContentState extends State<SettingsScreenContent> {
+class _SettingsScreenContentState extends State<SettingsScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final _formKey = GlobalKey<FormState>();
   final _dailyHoursController = TextEditingController();
   final _dailyMinutesController = TextEditingController();
@@ -32,7 +36,28 @@ class _SettingsScreenContentState extends State<SettingsScreenContent> {
   @override
   void initState() {
     super.initState();
-    context.read<BackendBloc>().add(LoadSettingsEvent());
+    _loadDataIfNeeded();
+  }
+
+  void _loadDataIfNeeded() {
+    final currentState = context.read<BackendBloc>().state;
+
+    // Load data if we're in initial or error state, or if we're missing specific data
+    bool needsToLoad = false;
+
+    if (currentState is BackendInitialState ||
+        currentState is BackendErrorState) {
+      needsToLoad = true;
+    } else if (currentState is BackendLoadedState) {
+      // Check if we have the data we need for this screen
+      if (currentState.settings == null) {
+        needsToLoad = true;
+      }
+    }
+
+    if (needsToLoad) {
+      context.read<BackendBloc>().add(LoadSettingsEvent());
+    }
   }
 
   @override
@@ -47,6 +72,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

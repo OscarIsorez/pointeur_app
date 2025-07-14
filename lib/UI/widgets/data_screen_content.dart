@@ -14,18 +14,45 @@ class DataScreenContent extends StatefulWidget {
   State<DataScreenContent> createState() => _DataScreenContentState();
 }
 
-class _DataScreenContentState extends State<DataScreenContent> {
+class _DataScreenContentState extends State<DataScreenContent>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   @override
   void initState() {
     super.initState();
-    // Load initial data
-    context.read<BackendBloc>().add(LoadTodaySessionEvent());
-    context.read<BackendBloc>().add(LoadWeeklyDataEvent());
-    context.read<BackendBloc>().add(LoadSettingsEvent());
+    _loadDataIfNeeded();
+  }
+
+  void _loadDataIfNeeded() {
+    final currentState = context.read<BackendBloc>().state;
+
+    // Load data if we're in initial or error state, or if we're missing specific data
+    bool needsToLoad = false;
+
+    if (currentState is BackendInitialState ||
+        currentState is BackendErrorState) {
+      needsToLoad = true;
+    } else if (currentState is BackendLoadedState) {
+      // Check if we have all the data we need for this screen
+      if (currentState.weeklyData == null ||
+          currentState.settings == null ||
+          currentState.todaySession == null) {
+        needsToLoad = true;
+      }
+    }
+
+    if (needsToLoad) {
+      context.read<BackendBloc>().add(LoadTodaySessionEvent());
+      context.read<BackendBloc>().add(LoadWeeklyDataEvent());
+      context.read<BackendBloc>().add(LoadSettingsEvent());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -159,7 +186,10 @@ class _DataScreenContentState extends State<DataScreenContent> {
                           const SizedBox(height: 16),
 
                           // Weekly work time chart
-                          const WeeklyWorkTimeChart(),
+                          WeeklyWorkTimeChart(
+                            weeklyData: state.weeklyData,
+                            settings: state.settings,
+                          ),
                         ],
                       );
                     }

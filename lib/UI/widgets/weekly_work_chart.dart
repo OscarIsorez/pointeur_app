@@ -1,13 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
-import 'package:pointeur_app/bloc/backend_bloc.dart';
-import 'package:pointeur_app/bloc/backend_states.dart';
 import 'package:pointeur_app/models/work_settings.dart';
+import 'package:pointeur_app/services/work_time_service.dart';
 
 class WeeklyWorkTimeChart extends StatefulWidget {
-  const WeeklyWorkTimeChart({super.key});
+  final List<WorkDayData>? weeklyData;
+  final WorkSettings? settings;
+
+  const WeeklyWorkTimeChart({super.key, this.weeklyData, this.settings});
 
   @override
   State<WeeklyWorkTimeChart> createState() => _WeeklyWorkTimeChartState();
@@ -69,135 +70,127 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<BackendBloc, BackendState>(
-      builder: (context, state) {
-        if (state is! BackendLoadedState) {
-          return Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            ),
-          );
-        }
-        return Container(
-          height: 200,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
+    // Show loading state if no data is provided
+    if (widget.weeklyData == null) {
+      return Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Temps de travail hebdomadaire',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 3.0,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Better spacing calculations for 7 bars
-                      final availableWidth = constraints.maxWidth - 20;
-                      final totalBarsWidth =
-                          availableWidth * 0.7; // Use 70% for bars
-                      final totalSpaceWidth =
-                          availableWidth * 0.4; // Use 30% for spacing
+        ),
+      );
+    }
 
-                      final barsWidth =
-                          totalBarsWidth / 7; // Divide equally among 7 days
-                      final barsSpace =
-                          totalSpaceWidth / 6; // 6 spaces between 7 bars
-                      return BarChart(
-                        BarChartData(
-                          alignment: BarChartAlignment.spaceAround,
-                          maxY: _getMaxY(state.settings),
-                          barTouchData: BarTouchData(
-                            enabled: true,
-                            touchTooltipData: BarTouchTooltipData(
-                              getTooltipColor: (_) => Colors.black87,
-                              getTooltipItem: (
-                                group,
-                                groupIndex,
-                                rod,
-                                rodIndex,
-                              ) {
-                                final dayName = _getDayName(groupIndex);
-                                final hours = rod.toY;
-                                final expectedTotalWorkTime =
-                                    state.settings?.dailyWorkDuration;
-                                return BarTooltipItem(
-                                  '$dayName\n${_formatToHHMM(hours)} / ${_formatToHHMM(expectedTotalWorkTime)}',
-                                  const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          titlesData: FlTitlesData(
-                            show: true,
-                            bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 28,
-                                getTitlesWidget: bottomTitles,
-                              ),
-                            ),
-                            leftTitles: AxisTitles(
-                              sideTitles: SideTitles(
-                                showTitles: true,
-                                reservedSize: 30,
-                                getTitlesWidget: leftTitles,
-                                interval: 2,
-                              ),
-                            ),
-                            topTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                            rightTitles: const AxisTitles(
-                              sideTitles: SideTitles(showTitles: false),
-                            ),
-                          ),
-                          gridData: FlGridData(
-                            show: true,
-                            checkToShowHorizontalLine:
-                                (value) => value % 2 == 0,
-                            getDrawingHorizontalLine:
-                                (value) => FlLine(
-                                  color: Colors.white.withValues(alpha: 0.1),
-                                  strokeWidth: 1,
-                                ),
-                            drawVerticalLine: false,
-                          ),
-                          borderData: FlBorderData(show: false),
-                          groupsSpace: barsSpace,
-                          barGroups: _getWeeklyData(state, barsWidth),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildLegend(),
-            ],
+    return Container(
+      height: 200,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Temps de travail hebdomadaire',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          Expanded(
+            child: AspectRatio(
+              aspectRatio: 3.0,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Better spacing calculations for 7 bars
+                  final availableWidth = constraints.maxWidth - 20;
+                  final totalBarsWidth =
+                      availableWidth * 0.7; // Use 70% for bars
+                  final totalSpaceWidth =
+                      availableWidth * 0.4; // Use 30% for spacing
+
+                  final barsWidth =
+                      totalBarsWidth / 7; // Divide equally among 7 days
+                  final barsSpace =
+                      totalSpaceWidth / 6; // 6 spaces between 7 bars
+                  return BarChart(
+                    BarChartData(
+                      alignment: BarChartAlignment.spaceAround,
+                      maxY: _getMaxY(widget.settings),
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          getTooltipColor: (_) => Colors.black87,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            final dayName = _getDayName(groupIndex);
+                            final hours = rod.toY;
+                            final expectedTotalWorkTime =
+                                widget.settings?.dailyWorkDuration;
+                            return BarTooltipItem(
+                              '$dayName\n${_formatToHHMM(hours)} / ${_formatToHHMM(expectedTotalWorkTime)}',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 28,
+                            getTitlesWidget: bottomTitles,
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: leftTitles,
+                            interval: 2,
+                          ),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      gridData: FlGridData(
+                        show: true,
+                        checkToShowHorizontalLine: (value) => value % 2 == 0,
+                        getDrawingHorizontalLine:
+                            (value) => FlLine(
+                              color: Colors.white.withValues(alpha: 0.1),
+                              strokeWidth: 1,
+                            ),
+                        drawVerticalLine: false,
+                      ),
+                      borderData: FlBorderData(show: false),
+                      groupsSpace: barsSpace,
+                      barGroups: _getWeeklyData(barsWidth),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildLegend(),
+        ],
+      ),
     );
   }
 
@@ -220,16 +213,12 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
     return days[dayIndex];
   }
 
-  List<BarChartGroupData> _getWeeklyData(
-    BackendLoadedState state,
-    double barsWidth,
-  ) {
-    final settings = state.settings;
+  List<BarChartGroupData> _getWeeklyData(double barsWidth) {
+    final settings = widget.settings;
     final expectedHours = settings?.dailyWorkHours ?? 8.0;
 
-    // Get current week sessions (mock data for now - replace with actual weekly data)
-    final weeklyHours =
-        _getMockWeeklyData(); // Replace this with actual data from state
+    // Get weekly hours from real data
+    final weeklyHours = _getWeeklyHoursFromData();
 
     return List.generate(7, (index) {
       final workedHours = weeklyHours[index];
@@ -249,6 +238,33 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
     });
   }
 
+  /// Extract weekly hours data from the passed weeklyData
+  /// Returns array of 7 doubles representing Monday to Sunday work hours
+  List<double> _getWeeklyHoursFromData() {
+    final weeklyData = widget.weeklyData;
+
+    if (weeklyData == null || weeklyData.isEmpty) {
+      // Return zeros if no data available yet
+      return List.filled(7, 0.0);
+    }
+
+    // Create array for Mon-Sun (index 0 = Monday, 6 = Sunday)
+    final weeklyHours = List.filled(7, 0.0);
+
+    for (final dayData in weeklyData) {
+      // Get weekday (1 = Monday, 7 = Sunday)
+      final weekday = dayData.date.weekday;
+      // Convert to array index (0 = Monday, 6 = Sunday)
+      final arrayIndex = weekday - 1;
+
+      if (arrayIndex >= 0 && arrayIndex < 7) {
+        weeklyHours[arrayIndex] = dayData.totalWorkHours;
+      }
+    }
+
+    return weeklyHours;
+  }
+
   Color _getBarColor(double workedHours, double expectedHours) {
     if (workedHours == 0) {
       return noWorkColor; // No work
@@ -259,13 +275,6 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
     } else {
       return overWorkedColor; // More than 110% of expected
     }
-  }
-
-  // Mock data - replace with actual weekly data from your backend
-  List<double> _getMockWeeklyData() {
-    // This should be replaced with actual data from your WorkSession repository
-    // For now, returning mock data to demonstrate the chart
-    return [7.5, 8.2, 0.0, 9.1, 7.8, 0.0, 0.0]; // Mon-Sun
   }
 
   Widget _buildLegend() {
