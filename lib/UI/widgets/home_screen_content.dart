@@ -9,6 +9,7 @@ import 'package:pointeur_app/services/work_time_service.dart';
 import 'package:pointeur_app/utils/debug_helper.dart';
 import 'package:pointeur_app/UI/widgets/edit_session_dialog.dart';
 import 'package:pointeur_app/models/work_session.dart';
+import 'dart:async';
 
 class HomeScreenContent extends StatefulWidget {
   const HomeScreenContent({super.key});
@@ -19,6 +20,8 @@ class HomeScreenContent extends StatefulWidget {
 
 class _HomeScreenContentState extends State<HomeScreenContent>
     with AutomaticKeepAliveClientMixin {
+  Timer? _workTimeTimer;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -26,6 +29,62 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   void initState() {
     super.initState();
     _loadDataIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _workTimeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startWorkTimeTimer(WorkSession session) {
+    _workTimeTimer?.cancel();
+
+    // Only start timer if user is working and not on break
+    if (session.arrivalTime != null &&
+        session.departureTime == null &&
+        !session.hasActiveBreak) {
+      // Force a rebuild every minute to update the display
+      _workTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+        if (mounted) {
+          try {
+            // Just force a rebuild without calling setState
+            if (context.mounted) {
+              // Trigger a rebuild by calling an empty setState
+              setState(() {});
+            } else {
+              timer.cancel();
+            }
+          } catch (e) {
+            timer.cancel();
+          }
+        } else {
+          timer.cancel();
+        }
+      });
+    }
+  }
+
+  void _stopWorkTimeTimer() {
+    _workTimeTimer?.cancel();
+  }
+
+  Duration _getCurrentWorkTime(WorkSession session) {
+    // Always calculate work time dynamically based on current time
+    if (session.arrivalTime != null) {
+      final now = DateTime.now();
+      final endTime = session.departureTime ?? now;
+      final totalTime = endTime.difference(session.arrivalTime!);
+
+      // Calculate total break time with explicit loop to avoid typing issues
+      Duration totalBreakTime = Duration.zero;
+      for (final breakPeriod in session.breaks) {
+        totalBreakTime = totalBreakTime + breakPeriod.duration;
+      }
+
+      return totalTime - totalBreakTime;
+    }
+    return session.totalWorkTime;
   }
 
   void _loadDataIfNeeded() {
@@ -132,6 +191,24 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                           backgroundColor: Colors.green,
                         ),
                       );
+                    }
+
+                    // Manage work time timer based on session state
+                    if (state is BackendLoadedState &&
+                        state.todaySession != null) {
+                      final session = state.todaySession!;
+                      final isWorking =
+                          session.arrivalTime != null &&
+                          session.departureTime == null;
+                      final isOnBreak = session.hasActiveBreak;
+
+                      if (isWorking && !isOnBreak) {
+                        _startWorkTimeTimer(session);
+                      } else {
+                        _stopWorkTimeTimer();
+                      }
+                    } else {
+                      _stopWorkTimeTimer();
                     }
                   },
                   builder: (context, state) {
@@ -376,7 +453,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                   ],
 
                                   Text(
-                                    'Temps travaillé: ${WorkTimeService().formatDuration(session.totalWorkTime)}',
+                                    'Temps travaillé: ${WorkTimeService().formatDuration(_getCurrentWorkTime(session))}',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,

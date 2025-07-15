@@ -6,6 +6,7 @@ import 'package:pointeur_app/bloc/backend_events.dart';
 import 'package:pointeur_app/bloc/backend_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
 import 'package:pointeur_app/UI/widgets/weekly_work_chart.dart';
+import 'dart:async';
 
 class DataScreenContent extends StatefulWidget {
   const DataScreenContent({super.key});
@@ -16,6 +17,8 @@ class DataScreenContent extends StatefulWidget {
 
 class _DataScreenContentState extends State<DataScreenContent>
     with AutomaticKeepAliveClientMixin {
+  Timer? _workTimeTimer;
+
   @override
   bool get wantKeepAlive => true;
 
@@ -23,6 +26,64 @@ class _DataScreenContentState extends State<DataScreenContent>
   void initState() {
     super.initState();
     _loadDataIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _workTimeTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startWorkTimeTimer(session) {
+    _workTimeTimer?.cancel();
+
+    // Only start timer if user is working and not on break
+    if (session.arrivalTime != null &&
+        session.departureTime == null &&
+        !session.hasActiveBreak) {
+      // Force a rebuild every minute to update the display
+      _workTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+        if (mounted) {
+          try {
+            // Just force a rebuild without calling setState
+            if (context.mounted) {
+              // Trigger a rebuild by calling an empty setState
+              setState(() {});
+            } else {
+              timer.cancel();
+            }
+          } catch (e) {
+            timer.cancel();
+          }
+        } else {
+          timer.cancel();
+        }
+      });
+    }
+  }
+
+  void _stopWorkTimeTimer() {
+    _workTimeTimer?.cancel();
+  }
+
+  Duration _getCurrentWorkTime(dynamic session) {
+    // Always calculate work time dynamically based on current time
+    if (session?.arrivalTime != null) {
+      final now = DateTime.now();
+      final endTime = session.departureTime ?? now;
+      final totalTime = endTime.difference(session.arrivalTime);
+
+      // Calculate total break time with proper typing
+      Duration totalBreakTime = Duration.zero;
+      if (session.breaks != null) {
+        for (final breakPeriod in session.breaks) {
+          totalBreakTime = totalBreakTime + breakPeriod.duration;
+        }
+      }
+
+      return totalTime - totalBreakTime;
+    }
+    return session?.totalWorkTime ?? Duration.zero;
   }
 
   void _loadDataIfNeeded() {
@@ -97,7 +158,26 @@ class _DataScreenContentState extends State<DataScreenContent>
 
               // Main data content
               Expanded(
-                child: BlocBuilder<BackendBloc, BackendState>(
+                child: BlocConsumer<BackendBloc, BackendState>(
+                  listener: (context, state) {
+                    // Manage work time timer based on session state
+                    if (state is BackendLoadedState &&
+                        state.todaySession != null) {
+                      final session = state.todaySession!;
+                      final isWorking =
+                          session.arrivalTime != null &&
+                          session.departureTime == null;
+                      final isOnBreak = session.hasActiveBreak;
+
+                      if (isWorking && !isOnBreak) {
+                        _startWorkTimeTimer(session);
+                      } else {
+                        _stopWorkTimeTimer();
+                      }
+                    } else {
+                      _stopWorkTimeTimer();
+                    }
+                  },
                   builder: (context, state) {
                     if (state is BackendLoadingState) {
                       return const Center(
@@ -170,8 +250,11 @@ class _DataScreenContentState extends State<DataScreenContent>
                                     _buildStatCard(
                                       'Temps travaillé',
                                       WorkTimeService().formatDuration(
-                                        state.todaySession?.totalWorkTime ??
-                                            Duration.zero,
+                                        state.todaySession != null
+                                            ? _getCurrentWorkTime(
+                                              state.todaySession!,
+                                            )
+                                            : Duration.zero,
                                       ),
                                       Icons.access_time,
                                     ),
