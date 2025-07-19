@@ -37,11 +37,9 @@ class _DataScreenContentState extends State<DataScreenContent>
   void _startWorkTimeTimer(session) {
     _workTimeTimer?.cancel();
 
-    // Only start timer if user is working and not on break
-    if (session.arrivalTime != null &&
-        session.departureTime == null &&
-        !session.hasActiveBreak) {
-      // Force a rebuild every minute to update the display
+    // Start timer if user has an active session (working OR on break)
+    if (session.arrivalTime != null && session.departureTime == null) {
+      // Force a rebuild every minute to update the display (work time AND break time)
       _workTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
         if (mounted) {
           try {
@@ -77,7 +75,14 @@ class _DataScreenContentState extends State<DataScreenContent>
       Duration totalBreakTime = Duration.zero;
       if (session.breaks != null) {
         for (final breakPeriod in session.breaks) {
-          totalBreakTime = totalBreakTime + breakPeriod.duration;
+          if (breakPeriod.endTime != null) {
+            // Count completed breaks using their actual duration
+            totalBreakTime = totalBreakTime + breakPeriod.duration;
+          } else {
+            // For ongoing breaks, calculate time elapsed since start
+            final elapsedBreakTime = now.difference(breakPeriod.startTime);
+            totalBreakTime = totalBreakTime + elapsedBreakTime;
+          }
         }
       }
 
@@ -164,12 +169,11 @@ class _DataScreenContentState extends State<DataScreenContent>
                     if (state is BackendLoadedState &&
                         state.todaySession != null) {
                       final session = state.todaySession!;
-                      final isWorking =
+                      final isActive =
                           session.arrivalTime != null &&
                           session.departureTime == null;
-                      final isOnBreak = session.hasActiveBreak;
 
-                      if (isWorking && !isOnBreak) {
+                      if (isActive) {
                         _startWorkTimeTimer(session);
                       } else {
                         _stopWorkTimeTimer();
@@ -343,15 +347,16 @@ class _DataScreenContentState extends State<DataScreenContent>
 
     // Calculate actual total break duration from the breaks
     Duration totalBreakDuration = Duration.zero;
+    final now = DateTime.now();
+
     for (final breakPeriod in todaySession.breaks) {
       if (breakPeriod.endTime != null) {
-        // Only count completed breaks
+        // Count completed breaks using their actual duration
         totalBreakDuration += breakPeriod.duration;
       } else {
-        // For ongoing breaks, use the default duration from settings
-        final defaultDuration =
-            settings?.breakDuration ?? Duration(minutes: 30);
-        totalBreakDuration += defaultDuration;
+        // For ongoing breaks, calculate time elapsed since start
+        final elapsedBreakTime = now.difference(breakPeriod.startTime);
+        totalBreakDuration += elapsedBreakTime;
       }
     }
 

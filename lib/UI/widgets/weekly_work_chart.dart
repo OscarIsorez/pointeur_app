@@ -132,10 +132,10 @@ class _WeeklyWorkTimeChartState extends State<WeeklyWorkTimeChart> {
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             final dayName = _getDayName(groupIndex);
                             final hours = rod.toY;
-                            final expectedTotalWorkTime =
-                                widget.settings?.dailyWorkDuration;
+                            final expectedHours =
+                                widget.settings?.dailyWorkHours ?? 8.0;
                             return BarTooltipItem(
-                              '$dayName\n${_formatToHHMM(hours)} / ${_formatToHHMM(expectedTotalWorkTime)}',
+                              '$dayName\n${_formatToHHMM(hours)} / ${_formatToHHMM(expectedHours)}',
                               const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

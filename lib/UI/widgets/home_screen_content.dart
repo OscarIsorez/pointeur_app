@@ -40,11 +40,9 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   void _startWorkTimeTimer(WorkSession session) {
     _workTimeTimer?.cancel();
 
-    // Only start timer if user is working and not on break
-    if (session.arrivalTime != null &&
-        session.departureTime == null &&
-        !session.hasActiveBreak) {
-      // Force a rebuild every minute to update the display
+    // Start timer if user has an active session (working OR on break)
+    if (session.arrivalTime != null && session.departureTime == null) {
+      // Force a rebuild every minute to update the display (work time AND break time)
       _workTimeTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
         if (mounted) {
           try {
@@ -79,12 +77,48 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       // Calculate total break time with explicit loop to avoid typing issues
       Duration totalBreakTime = Duration.zero;
       for (final breakPeriod in session.breaks) {
-        totalBreakTime = totalBreakTime + breakPeriod.duration;
+        if (breakPeriod.endTime != null) {
+          // Count completed breaks using their actual duration
+          totalBreakTime = totalBreakTime + breakPeriod.duration;
+        } else {
+          // For ongoing breaks, calculate time elapsed since start
+          final elapsedBreakTime = now.difference(breakPeriod.startTime);
+          totalBreakTime = totalBreakTime + elapsedBreakTime;
+        }
       }
 
       return totalTime - totalBreakTime;
     }
     return session.totalWorkTime;
+  }
+
+  /// Calculate total break time for a session
+  Duration _getTotalBreakTime(WorkSession session) {
+    Duration totalBreakTime = Duration.zero;
+    final now = DateTime.now();
+
+    for (final breakPeriod in session.breaks) {
+      if (breakPeriod.endTime != null) {
+        // Count completed breaks using their actual duration
+        totalBreakTime = totalBreakTime + breakPeriod.duration;
+      } else {
+        // For ongoing breaks, calculate time elapsed since start
+        final elapsedBreakTime = now.difference(breakPeriod.startTime);
+        totalBreakTime = totalBreakTime + elapsedBreakTime;
+      }
+    }
+
+    return totalBreakTime;
+  }
+
+  /// Format breaks information showing count and total duration
+  String _formatBreaksInfo(WorkSession session) {
+    final breakCount = session.breaks.length;
+    if (breakCount == 0) return '0';
+
+    final totalBreakTime = _getTotalBreakTime(session);
+    final formattedDuration = WorkTimeService().formatDuration(totalBreakTime);
+    return '$breakCount ($formattedDuration)';
   }
 
   void _loadDataIfNeeded() {
@@ -197,12 +231,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                     if (state is BackendLoadedState &&
                         state.todaySession != null) {
                       final session = state.todaySession!;
-                      final isWorking =
+                      final isActive =
                           session.arrivalTime != null &&
                           session.departureTime == null;
-                      final isOnBreak = session.hasActiveBreak;
 
-                      if (isWorking && !isOnBreak) {
+                      if (isActive) {
                         _startWorkTimeTimer(session);
                       } else {
                         _stopWorkTimeTimer();
@@ -462,7 +495,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Pauses: ${session.breaks.length}',
+                                    'Pauses: ${_formatBreaksInfo(session)}',
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: Colors.white.withValues(
@@ -648,6 +681,4 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       );
     }
   }
-
-  // Delete today's session method - remove in production
 }

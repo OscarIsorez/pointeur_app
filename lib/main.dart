@@ -19,7 +19,6 @@ class TimeTrackerApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Time Tracker',
         theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.system,
         home: const MainScreen(),
         debugShowCheckedModeBanner: false,
