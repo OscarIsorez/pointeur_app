@@ -18,25 +18,30 @@ class WorkSessionRepository
   Future<WorkSession> getTodaySession() async {
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
+    return await getSessionByDate(todayDate);
+  }
+
+  /// Get work session for a specific date or create a new one if it doesn't exist
+  Future<WorkSession> getSessionByDate(DateTime date) async {
+    final targetDate = DateTime(date.year, date.month, date.day);
 
     final sessions = await fetchAll();
-    final todaySession =
+    final existingSession =
         sessions.where((session) {
           final sessionDate = DateTime(
             session.date.year,
             session.date.month,
             session.date.day,
           );
-          return sessionDate.isAtSameMomentAs(todayDate);
+          return sessionDate.isAtSameMomentAs(targetDate);
         }).firstOrNull;
 
-    if (todaySession != null) {
-      return todaySession;
+    if (existingSession != null) {
+      return existingSession;
     }
 
-    // Create a new session for today
-    final newSession = WorkSession(date: todayDate);
-
+    // Create a new session for the specified date
+    final newSession = WorkSession(date: targetDate);
     return await create(newSession);
   }
 

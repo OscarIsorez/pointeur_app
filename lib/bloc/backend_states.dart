@@ -12,7 +12,14 @@ abstract class BackendState extends Equatable {
 
 class BackendInitialState extends BackendState {}
 
-class BackendLoadingState extends BackendState {}
+class BackendLoadingState extends BackendState {
+  final String? loadingMessage;
+
+  const BackendLoadingState({this.loadingMessage});
+
+  @override
+  List<Object?> get props => [loadingMessage];
+}
 
 class BackendLoadedState extends BackendState {
   final WorkSession? todaySession;
@@ -38,6 +45,7 @@ class BackendLoadedState extends BackendState {
     List<WorkDayData>? weeklyData,
     WorkSummary? monthlySummary,
     String? successMessage,
+    bool clearSuccessMessage = false,
   }) {
     return BackendLoadedState(
       todaySession: todaySession ?? this.todaySession,
@@ -45,7 +53,8 @@ class BackendLoadedState extends BackendState {
       currentStatus: currentStatus ?? this.currentStatus,
       weeklyData: weeklyData ?? this.weeklyData,
       monthlySummary: monthlySummary ?? this.monthlySummary,
-      successMessage: successMessage,
+      successMessage:
+          clearSuccessMessage ? null : (successMessage ?? this.successMessage),
     );
   }
 
@@ -58,6 +67,120 @@ class BackendLoadedState extends BackendState {
     monthlySummary,
     successMessage,
   ];
+}
+
+// Specific state for settings operations
+class SettingsLoadingState extends BackendState {}
+
+class SettingsLoadedState extends BackendState {
+  final WorkSettings settings;
+  final String? successMessage;
+
+  const SettingsLoadedState({required this.settings, this.successMessage});
+
+  SettingsLoadedState copyWith({
+    WorkSettings? settings,
+    String? successMessage,
+    bool clearSuccessMessage = false,
+  }) {
+    return SettingsLoadedState(
+      settings: settings ?? this.settings,
+      successMessage:
+          clearSuccessMessage ? null : (successMessage ?? this.successMessage),
+    );
+  }
+
+  @override
+  List<Object?> get props => [settings, successMessage];
+}
+
+class SettingsErrorState extends BackendState {
+  final String message;
+  final WorkSettings? lastKnownSettings;
+
+  const SettingsErrorState(this.message, {this.lastKnownSettings});
+
+  @override
+  List<Object?> get props => [message, lastKnownSettings];
+}
+
+// Specific state for work session operations
+class WorkSessionLoadingState extends BackendState {}
+
+class WorkSessionLoadedState extends BackendState {
+  final WorkSession todaySession;
+  final WorkStatus currentStatus;
+  final String? successMessage;
+
+  const WorkSessionLoadedState({
+    required this.todaySession,
+    required this.currentStatus,
+    this.successMessage,
+  });
+
+  WorkSessionLoadedState copyWith({
+    WorkSession? todaySession,
+    WorkStatus? currentStatus,
+    String? successMessage,
+    bool clearSuccessMessage = false,
+  }) {
+    return WorkSessionLoadedState(
+      todaySession: todaySession ?? this.todaySession,
+      currentStatus: currentStatus ?? this.currentStatus,
+      successMessage:
+          clearSuccessMessage ? null : (successMessage ?? this.successMessage),
+    );
+  }
+
+  @override
+  List<Object?> get props => [todaySession, currentStatus, successMessage];
+}
+
+class WorkSessionErrorState extends BackendState {
+  final String message;
+  final WorkSession? lastKnownSession;
+  final WorkStatus? lastKnownStatus;
+
+  const WorkSessionErrorState(
+    this.message, {
+    this.lastKnownSession,
+    this.lastKnownStatus,
+  });
+
+  @override
+  List<Object?> get props => [message, lastKnownSession, lastKnownStatus];
+}
+
+// Specific state for analytics/reports
+class AnalyticsLoadingState extends BackendState {}
+
+class AnalyticsLoadedState extends BackendState {
+  final List<WorkDayData>? weeklyData;
+  final WorkSummary? monthlySummary;
+
+  const AnalyticsLoadedState({this.weeklyData, this.monthlySummary});
+
+  AnalyticsLoadedState copyWith({
+    List<WorkDayData>? weeklyData,
+    WorkSummary? monthlySummary,
+  }) {
+    return AnalyticsLoadedState(
+      weeklyData: weeklyData ?? this.weeklyData,
+      monthlySummary: monthlySummary ?? this.monthlySummary,
+    );
+  }
+
+  @override
+  List<Object?> get props => [weeklyData, monthlySummary];
+}
+
+class AnalyticsErrorState extends BackendState {
+  final String message;
+
+  const AnalyticsErrorState(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class BackendErrorState extends BackendState {

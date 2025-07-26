@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
-import 'package:pointeur_app/bloc/backend_bloc.dart';
-import 'package:pointeur_app/bloc/backend_events.dart';
-import 'package:pointeur_app/bloc/backend_states.dart';
+import 'package:pointeur_app/bloc/settings_bloc.dart';
+import 'package:pointeur_app/bloc/settings_events.dart';
+import 'package:pointeur_app/bloc/settings_states.dart';
 import 'package:pointeur_app/models/work_settings.dart';
 import 'package:pointeur_app/UI/widgets/animated_save_button.dart';
 
@@ -54,9 +54,9 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
     _breakDurationController.text = '30'; // Default break duration
 
     // Check if settings are already available and use them
-    final currentState = context.read<BackendBloc>().state;
-    if (currentState is BackendLoadedState && currentState.settings != null) {
-      _initializeWithSettings(currentState.settings!);
+    final currentState = context.read<SettingsBloc>().state;
+    if (currentState is SettingsLoadedState) {
+      _initializeWithSettings(currentState.settings);
     }
 
     _loadDataIfNeeded();
@@ -86,26 +86,21 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
   }
 
   void _loadDataIfNeeded() {
-    final currentState = context.read<BackendBloc>().state;
+    final currentState = context.read<SettingsBloc>().state;
 
-    // Load data if we're in initial or error state, or if we're missing specific data
+    // Load data if we're in initial or error state
     bool needsToLoad = false;
 
-    if (currentState is BackendInitialState ||
-        currentState is BackendErrorState) {
+    if (currentState is SettingsInitialState ||
+        currentState is SettingsErrorState) {
       needsToLoad = true;
-    } else if (currentState is BackendLoadedState) {
-      // Check if we have the data we need for this screen
-      if (currentState.settings == null) {
-        needsToLoad = true;
-      } else {
-        // If we already have settings, update the form immediately
-        _updateFormWithSettings(currentState.settings!);
-      }
+    } else if (currentState is SettingsLoadedState) {
+      // If we already have settings, update the form immediately
+      _updateFormWithSettings(currentState.settings);
     }
 
     if (needsToLoad) {
-      context.read<BackendBloc>().add(LoadSettingsEvent());
+      context.read<SettingsBloc>().add(LoadSettingsEvent());
     }
   }
 
@@ -166,16 +161,16 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
 
                   // Settings form
                   Expanded(
-                    child: BlocConsumer<BackendBloc, BackendState>(
+                    child: BlocConsumer<SettingsBloc, SettingsState>(
                       listener: (context, state) {
-                        if (state is BackendErrorState) {
+                        if (state is SettingsErrorState) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(state.message),
                               backgroundColor: Colors.red,
                             ),
                           );
-                        } else if (state is BackendLoadedState) {
+                        } else if (state is SettingsLoadedState) {
                           if (state.successMessage != null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -185,13 +180,11 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                             );
                           }
                           // Update form with loaded settings
-                          if (state.settings != null) {
-                            _updateFormWithSettings(state.settings!);
-                          }
+                          _updateFormWithSettings(state.settings);
                         }
                       },
                       builder: (context, state) {
-                        if (state is BackendLoadingState) {
+                        if (state is SettingsLoadingState) {
                           return const Center(
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -563,7 +556,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
         enableNotifications: _notificationsEnabled,
       );
 
-      context.read<BackendBloc>().add(UpdateSettingsEvent(settings));
+      context.read<SettingsBloc>().add(UpdateSettingsEvent(settings));
     }
   }
 }

@@ -88,6 +88,11 @@ class WorkTimeService {
     return await _sessionRepository.getTodaySession();
   }
 
+  /// Get session for a specific date
+  Future<WorkSession> getSessionByDate(DateTime date) async {
+    return await _sessionRepository.getSessionByDate(date);
+  }
+
   /// Get work settings
   Future<WorkSettings> getSettings() async {
     return await _settingsRepository.getSettings();

@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
-import 'package:pointeur_app/bloc/backend_bloc.dart';
-import 'package:pointeur_app/bloc/backend_events.dart';
-import 'package:pointeur_app/bloc/backend_states.dart';
+import 'package:pointeur_app/bloc/work_session_bloc.dart';
+import 'package:pointeur_app/bloc/work_session_events.dart';
+import 'package:pointeur_app/bloc/work_session_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
 import 'package:pointeur_app/utils/debug_helper.dart';
 import 'package:pointeur_app/UI/widgets/edit_session_dialog.dart';
@@ -122,23 +122,21 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   void _loadDataIfNeeded() {
-    final currentState = context.read<BackendBloc>().state;
+    final currentState = context.read<WorkSessionBloc>().state;
 
-    // Load data if we're in initial or error state, or if we're missing specific data
+    // Load data if we're in initial or error state
     bool needsToLoad = false;
 
-    if (currentState is BackendInitialState ||
-        currentState is BackendErrorState) {
+    if (currentState is WorkSessionInitialState ||
+        currentState is WorkSessionErrorState) {
       needsToLoad = true;
-    } else if (currentState is BackendLoadedState) {
-      // Check if we have the data we need for this screen
-      if (currentState.todaySession == null) {
-        needsToLoad = true;
-      }
+    } else if (currentState is WorkSessionLoadedState) {
+      // We already have the data we need for this screen
+      needsToLoad = false;
     }
 
     if (needsToLoad) {
-      context.read<BackendBloc>().add(LoadTodaySessionEvent());
+      context.read<WorkSessionBloc>().add(LoadTodaySessionEvent());
     }
   }
 
@@ -179,14 +177,13 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                     ),
                     const Spacer(),
                     // Edit session button - show when there's a session
-                    BlocBuilder<BackendBloc, BackendState>(
+                    BlocBuilder<WorkSessionBloc, WorkSessionState>(
                       builder: (context, state) {
-                        if (state is BackendLoadedState &&
-                            state.todaySession != null) {
+                        if (state is WorkSessionLoadedState) {
                           return IconButton(
                             onPressed:
                                 () =>
-                                    _showEditSessionDialog(state.todaySession!),
+                                    _showEditSessionDialog(state.todaySession),
                             icon: const Icon(Icons.edit, color: Colors.white),
                             tooltip: 'Edit Session',
                           );
@@ -208,16 +205,16 @@ class _HomeScreenContentState extends State<HomeScreenContent>
 
               // Main content
               Expanded(
-                child: BlocConsumer<BackendBloc, BackendState>(
+                child: BlocConsumer<WorkSessionBloc, WorkSessionState>(
                   listener: (context, state) {
-                    if (state is BackendErrorState) {
+                    if (state is WorkSessionErrorState) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(state.message),
                           backgroundColor: Colors.red,
                         ),
                       );
-                    } else if (state is BackendLoadedState &&
+                    } else if (state is WorkSessionLoadedState &&
                         state.successMessage != null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -228,9 +225,8 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                     }
 
                     // Manage work time timer based on session state
-                    if (state is BackendLoadedState &&
-                        state.todaySession != null) {
-                      final session = state.todaySession!;
+                    if (state is WorkSessionLoadedState) {
+                      final session = state.todaySession;
                       final isActive =
                           session.arrivalTime != null &&
                           session.departureTime == null;
@@ -245,7 +241,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                     }
                   },
                   builder: (context, state) {
-                    if (state is BackendLoadingState) {
+                    if (state is WorkSessionLoadingState) {
                       return const Center(
                         child: CircularProgressIndicator(
                           valueColor: AlwaysStoppedAnimation<Color>(
@@ -253,7 +249,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                           ),
                         ),
                       );
-                    } else if (state is BackendErrorState) {
+                    } else if (state is WorkSessionErrorState) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -284,7 +280,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () {
-                                context.read<BackendBloc>().add(
+                                context.read<WorkSessionBloc>().add(
                                   LoadTodaySessionEvent(),
                                 );
                               },
@@ -293,12 +289,12 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                           ],
                         ),
                       );
-                    } else if (state is BackendLoadedState) {
+                    } else if (state is WorkSessionLoadedState) {
                       final session = state.todaySession;
                       final isWorking =
-                          session?.arrivalTime != null &&
-                          session?.departureTime == null;
-                      final isOnBreak = session?.hasActiveBreak ?? false;
+                          session.arrivalTime != null &&
+                          session.departureTime == null;
+                      final isOnBreak = session.hasActiveBreak;
 
                       return Column(
                         children: [
@@ -335,185 +331,169 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                if (session != null) ...[
-                                  // Show arrival and departure times in a more organized way
-                                  if (session.arrivalTime != null ||
-                                      session.departureTime != null) ...[
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceAround,
-                                        children: [
-                                          if (session.arrivalTime != null) ...[
-                                            Column(
-                                              children: [
-                                                Icon(
-                                                  Icons.login,
-                                                  color: Colors.green,
-                                                  size: 16,
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  _formatTime(
-                                                    session.arrivalTime!,
-                                                  ),
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'Arrivée',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.white
-                                                        .withValues(alpha: 0.7),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-
-                                          if (session.departureTime !=
-                                              null) ...[
-                                            Column(
-                                              children: [
-                                                Icon(
-                                                  Icons.logout,
-                                                  color: Colors.orange,
-                                                  size: 16,
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  _formatTime(
-                                                    session.departureTime!,
-                                                  ),
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'Départ',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.white
-                                                        .withValues(alpha: 0.7),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ],
-                                      ),
+                                // Show arrival and departure times in a more organized way
+                                if (session.arrivalTime != null ||
+                                    session.departureTime != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
                                     ),
-                                    const SizedBox(height: 8),
-                                  ],
-
-                                  // Show current break start time if on break
-                                  if (isOnBreak &&
-                                      session.breaks.isNotEmpty) ...[
-                                    Builder(
-                                      builder: (context) {
-                                        final currentBreak =
-                                            session.breaks.last;
-                                        if (!currentBreak.isComplete) {
-                                          return Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 6,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.withValues(
-                                                alpha: 0.2,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceAround,
+                                      children: [
+                                        if (session.arrivalTime != null) ...[
+                                          Column(
+                                            children: [
+                                              Icon(
+                                                Icons.login,
+                                                color: Colors.green,
+                                                size: 16,
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Icon(
-                                                  Icons.coffee,
-                                                  color: Colors.orange,
-                                                  size: 16,
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatTime(
+                                                  session.arrivalTime!,
                                                 ),
-                                                const SizedBox(width: 8),
-                                                Column(
-                                                  children: [
-                                                    Text(
-                                                      'Pause depuis ${_formatTime(currentBreak.startTime)}',
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: Colors.white,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      '(${_formatElapsedTime(currentBreak.duration)})',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.white
-                                                            .withValues(
-                                                              alpha: 0.8,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
                                                 ),
-                                              ],
-                                            ),
-                                          );
-                                        }
-                                        return const SizedBox();
-                                      },
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
+                                              ),
+                                              Text(
+                                                'Arrivée',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
 
-                                  Text(
-                                    'Temps travaillé: ${WorkTimeService().formatDuration(_getCurrentWorkTime(session))}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                        if (session.departureTime != null) ...[
+                                          Column(
+                                            children: [
+                                              Icon(
+                                                Icons.logout,
+                                                color: Colors.orange,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatTime(
+                                                  session.departureTime!,
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Départ',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.7),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Pauses: ${_formatBreaksInfo(session)}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                    ),
-                                  ),
-                                ] else ...[
-                                  Text(
-                                    'Aucune session aujourd\'hui',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                    ),
-                                  ),
+                                  const SizedBox(height: 8),
                                 ],
+
+                                // Show current break start time if on break
+                                if (isOnBreak && session.breaks.isNotEmpty) ...[
+                                  Builder(
+                                    builder: (context) {
+                                      final currentBreak = session.breaks.last;
+                                      if (!currentBreak.isComplete) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.coffee,
+                                                color: Colors.orange,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Column(
+                                                children: [
+                                                  Text(
+                                                    'Pause depuis ${_formatTime(currentBreak.startTime)}',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '(${_formatElapsedTime(currentBreak.duration)})',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.8,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                      return const SizedBox();
+                                    },
+                                  ),
+                                  const SizedBox(height: 8),
+                                ],
+
+                                Text(
+                                  'Temps travaillé: ${WorkTimeService().formatDuration(_getCurrentWorkTime(session))}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Pauses: ${_formatBreaksInfo(session)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -531,7 +511,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                     'Arrivée',
                                     Icons.login,
                                     () {
-                                      context.read<BackendBloc>().add(
+                                      context.read<WorkSessionBloc>().add(
                                         RecordArrivalEvent(),
                                       );
                                     },
@@ -548,13 +528,13 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                               : Icons.coffee,
                                           () {
                                             if (isOnBreak) {
-                                              context.read<BackendBloc>().add(
-                                                EndBreakEvent(),
-                                              );
+                                              context
+                                                  .read<WorkSessionBloc>()
+                                                  .add(EndBreakEvent());
                                             } else {
-                                              context.read<BackendBloc>().add(
-                                                StartBreakEvent(),
-                                              );
+                                              context
+                                                  .read<WorkSessionBloc>()
+                                                  .add(StartBreakEvent());
                                             }
                                           },
                                         ),
@@ -566,7 +546,7 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                                           'Départ',
                                           Icons.logout,
                                           () {
-                                            context.read<BackendBloc>().add(
+                                            context.read<WorkSessionBloc>().add(
                                               RecordDepartureEvent(),
                                             );
                                           },
@@ -654,11 +634,23 @@ class _HomeScreenContentState extends State<HomeScreenContent>
       context: context,
       builder:
           (context) => EditSessionDialog(
-            session: session,
+            initialDate: session.date,
             onSave: (updatedSession) {
-              context.read<BackendBloc>().add(
-                UpdateSessionEvent(updatedSession),
-              );
+              // Only update the WorkSessionBloc if the edited session is for today
+              final today = DateTime.now();
+              final isToday =
+                  updatedSession.date.year == today.year &&
+                  updatedSession.date.month == today.month &&
+                  updatedSession.date.day == today.day;
+
+              if (isToday) {
+                context.read<WorkSessionBloc>().add(
+                  UpdateSessionEvent(updatedSession),
+                );
+              } else {
+                // For past dates, just refresh today's session to ensure accuracy
+                context.read<WorkSessionBloc>().add(LoadTodaySessionEvent());
+              }
             },
           ),
     );
