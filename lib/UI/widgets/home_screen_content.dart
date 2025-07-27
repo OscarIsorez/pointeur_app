@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/theme/app_colors.dart';
@@ -6,7 +5,6 @@ import 'package:pointeur_app/bloc/work_session_bloc.dart';
 import 'package:pointeur_app/bloc/work_session_events.dart';
 import 'package:pointeur_app/bloc/work_session_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
-import 'package:pointeur_app/utils/debug_helper.dart';
 import 'package:pointeur_app/UI/widgets/edit_session_dialog.dart';
 import 'package:pointeur_app/models/work_session.dart';
 import 'dart:async';
@@ -656,5 +654,5 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   // Debug method - remove in production
-  û
+  
 }
