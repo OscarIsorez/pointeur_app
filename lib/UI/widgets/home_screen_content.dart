@@ -191,12 +191,11 @@ class _HomeScreenContentState extends State<HomeScreenContent>
                         return const SizedBox();
                       },
                     ),
-                    // Debug button - remove in production
-                    IconButton(
-                      onPressed: () => _showDebugInfo(),
-                      icon: const Icon(Icons.bug_report, color: Colors.white),
-                      tooltip: 'Debug Info',
-                    ),
+                    // IconButton(
+                    //   onPressed: () => _showDebugInfo(),
+                    //   icon: const Icon(Icons.bug_report, color: Colors.white),
+                    //   tooltip: 'Debug Info',
+                    // ),
                   ],
                 ),
               ),

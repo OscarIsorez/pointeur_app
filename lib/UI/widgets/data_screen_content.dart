@@ -299,69 +299,71 @@ class _DataScreenContentState extends State<DataScreenContent>
                           );
                         }
 
-                        return Column(
-                          children: [
-                            // Today's summary
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Aujourd\'hui',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                        return SingleChildScrollView(
+                          child: Column(
+                            children: [
+                              // Today's summary
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Aujourd\'hui',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildStatCard(
-                                        'Temps travaillé',
-                                        WorkTimeService().formatDuration(
-                                          todaySession != null
-                                              ? _getCurrentWorkTime(
-                                                todaySession,
-                                              )
-                                              : Duration.zero,
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        _buildStatCard(
+                                          'Temps travaillé',
+                                          WorkTimeService().formatDuration(
+                                            todaySession != null
+                                                ? _getCurrentWorkTime(
+                                                  todaySession,
+                                                )
+                                                : Duration.zero,
+                                          ),
+                                          Icons.access_time,
                                         ),
-                                        Icons.access_time,
-                                      ),
-                                      _buildStatCard(
-                                        'Pauses',
-                                        _formatBreaksInfo(
-                                          todaySession,
-                                          settings,
+                                        _buildStatCard(
+                                          'Pauses',
+                                          _formatBreaksInfo(
+                                            todaySession,
+                                            settings,
+                                          ),
+                                          Icons.coffee,
                                         ),
-                                        Icons.coffee,
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
 
-                            const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                            // Weekly work time chart
-                            WeeklyWorkTimeChart(
-                              weeklyData: weeklyData,
-                              settings: settings,
-                            ),
+                              // Weekly work time chart
+                              WeeklyWorkTimeChart(
+                                weeklyData: weeklyData,
+                                settings: settings,
+                              ),
 
-                            const SizedBox(height: 16),
+                              const SizedBox(height: 16),
 
-                            // Weekly overtime summary
-                            _buildWeeklyOvertimeSummary(weeklyData, settings),
-                          ],
+                              // Weekly overtime summary
+                              _buildWeeklyOvertimeSummary(weeklyData, settings),
+                            ],
+                          ),
                         );
                       },
                     );
