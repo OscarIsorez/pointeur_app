@@ -656,20 +656,5 @@ class _HomeScreenContentState extends State<HomeScreenContent>
   }
 
   // Debug method - remove in production
-  void _showDebugInfo() async {
-    if (kDebugMode) {
-      print('\n🐛 Debug Info Requested from UI');
-    }
-    await WorkDebugHelper.printAllDebugInfo();
-
-    // Also show a snackbar to confirm
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Debug info printed to console'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
-  }
+  û
 }
