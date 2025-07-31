@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:pointeur_app/UI/screens/main_screen.dart';
-import 'package:pointeur_app/bloc/backend_bloc.dart';
 import 'package:pointeur_app/bloc/settings_bloc.dart';
 import 'package:pointeur_app/bloc/work_session_bloc.dart';
 import 'theme/app_theme.dart';
@@ -18,7 +17,6 @@ class TimeTrackerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (context) => BackendBloc()),
         BlocProvider(create: (context) => SettingsBloc()),
         BlocProvider(create: (context) => WorkSessionBloc()),
       ],

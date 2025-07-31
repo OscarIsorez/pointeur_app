@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:pointeur_app/models/work_session.dart';
+import 'package:pointeur_app/models/work_settings.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
 
 abstract class WorkSessionState extends Equatable {
@@ -14,53 +15,100 @@ class WorkSessionInitialState extends WorkSessionState {}
 class WorkSessionLoadingState extends WorkSessionState {
   final WorkSession? lastKnownSession;
   final WorkStatus? lastKnownStatus;
+  final WorkSettings? lastKnownSettings;
+  final List<WorkDayData>? lastKnownWeeklyData;
+  final WorkSummary? lastKnownMonthlySummary;
 
-  const WorkSessionLoadingState({this.lastKnownSession, this.lastKnownStatus});
+  const WorkSessionLoadingState({
+    this.lastKnownSession,
+    this.lastKnownStatus,
+    this.lastKnownSettings,
+    this.lastKnownWeeklyData,
+    this.lastKnownMonthlySummary,
+  });
 
   @override
-  List<Object?> get props => [lastKnownSession, lastKnownStatus];
+  List<Object?> get props => [
+    lastKnownSession,
+    lastKnownStatus,
+    lastKnownSettings,
+    lastKnownWeeklyData,
+    lastKnownMonthlySummary,
+  ];
 }
 
 class WorkSessionLoadedState extends WorkSessionState {
   final WorkSession todaySession;
   final WorkStatus currentStatus;
+  final WorkSettings? settings;
+  final List<WorkDayData>? weeklyData;
+  final WorkSummary? monthlySummary;
   final String? successMessage;
 
   const WorkSessionLoadedState({
     required this.todaySession,
     required this.currentStatus,
+    this.settings,
+    this.weeklyData,
+    this.monthlySummary,
     this.successMessage,
   });
 
   WorkSessionLoadedState copyWith({
     WorkSession? todaySession,
     WorkStatus? currentStatus,
+    WorkSettings? settings,
+    List<WorkDayData>? weeklyData,
+    WorkSummary? monthlySummary,
     String? successMessage,
     bool clearSuccessMessage = false,
   }) {
     return WorkSessionLoadedState(
       todaySession: todaySession ?? this.todaySession,
       currentStatus: currentStatus ?? this.currentStatus,
+      settings: settings ?? this.settings,
+      weeklyData: weeklyData ?? this.weeklyData,
+      monthlySummary: monthlySummary ?? this.monthlySummary,
       successMessage:
           clearSuccessMessage ? null : (successMessage ?? this.successMessage),
     );
   }
 
   @override
-  List<Object?> get props => [todaySession, currentStatus, successMessage];
+  List<Object?> get props => [
+    todaySession,
+    currentStatus,
+    settings,
+    weeklyData,
+    monthlySummary,
+    successMessage,
+  ];
 }
 
 class WorkSessionErrorState extends WorkSessionState {
   final String message;
   final WorkSession? lastKnownSession;
   final WorkStatus? lastKnownStatus;
+  final WorkSettings? lastKnownSettings;
+  final List<WorkDayData>? lastKnownWeeklyData;
+  final WorkSummary? lastKnownMonthlySummary;
 
   const WorkSessionErrorState(
     this.message, {
     this.lastKnownSession,
     this.lastKnownStatus,
+    this.lastKnownSettings,
+    this.lastKnownWeeklyData,
+    this.lastKnownMonthlySummary,
   });
 
   @override
-  List<Object?> get props => [message, lastKnownSession, lastKnownStatus];
+  List<Object?> get props => [
+    message,
+    lastKnownSession,
+    lastKnownStatus,
+    lastKnownSettings,
+    lastKnownWeeklyData,
+    lastKnownMonthlySummary,
+  ];
 }

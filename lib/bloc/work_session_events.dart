@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:pointeur_app/models/work_session.dart';
+import 'package:pointeur_app/models/work_settings.dart';
 
 abstract class WorkSessionEvent extends Equatable {
   const WorkSessionEvent();
@@ -8,6 +9,7 @@ abstract class WorkSessionEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+// Work session events
 class LoadTodaySessionEvent extends WorkSessionEvent {}
 
 class RecordArrivalEvent extends WorkSessionEvent {}
@@ -28,3 +30,22 @@ class UpdateSessionEvent extends WorkSessionEvent {
 }
 
 class RefreshWorkSessionEvent extends WorkSessionEvent {}
+
+// Settings events
+class LoadSettingsEvent extends WorkSessionEvent {}
+
+class UpdateSettingsEvent extends WorkSessionEvent {
+  final WorkSettings settings;
+
+  const UpdateSettingsEvent(this.settings);
+
+  @override
+  List<Object?> get props => [settings];
+}
+
+// Analytics/Data events
+class LoadWeeklyDataEvent extends WorkSessionEvent {}
+
+class LoadMonthlySummaryEvent extends WorkSessionEvent {}
+
+class RefreshAllDataEvent extends WorkSessionEvent {}
