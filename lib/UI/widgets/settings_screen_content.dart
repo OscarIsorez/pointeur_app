@@ -47,7 +47,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
       initialItem: _selectedHours,
     );
     _minutesScrollController = FixedExtentScrollController(
-      initialItem: _selectedMinutes ~/ 5,
+      initialItem: _selectedMinutes,
     );
 
     // Initialize text controllers with default values
@@ -72,7 +72,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
 
     // Update state variables
     _selectedHours = hours;
-    _selectedMinutes = (minutes ~/ 5) * 5;
+    _selectedMinutes = minutes;
     _notificationsEnabled = settings.enableNotifications;
 
     // Update text controllers
@@ -80,7 +80,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
 
     // Jump to the correct positions without animation for initial load
     _hoursScrollController.jumpToItem(hours);
-    _minutesScrollController.jumpToItem(_selectedMinutes ~/ 5);
+    _minutesScrollController.jumpToItem(_selectedMinutes);
 
     _hasBeenInitialized = true;
   }
@@ -311,16 +311,15 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
                                                     ) {
                                                       setState(() {
                                                         _selectedMinutes =
-                                                            index * 5;
+                                                            index;
                                                       });
                                                     },
-                                                    children: List.generate(12, (
+                                                    children: List.generate(60, (
                                                       index,
                                                     ) {
-                                                      final minutes = index * 5;
                                                       return Center(
                                                         child: Text(
-                                                          '$minutes min',
+                                                          '$index min',
                                                           style:
                                                               const TextStyle(
                                                                 color:
@@ -508,8 +507,8 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
 
     setState(() {
       _selectedHours = hours;
-      // Round minutes to nearest 5-minute interval for the picker
-      _selectedMinutes = (minutes ~/ 5) * 5;
+      // Use exact minutes value
+      _selectedMinutes = minutes;
       _notificationsEnabled = settings.enableNotifications;
     });
 
@@ -521,7 +520,7 @@ class _SettingsScreenContentState extends State<SettingsScreenContent>
     );
 
     _minutesScrollController.animateToItem(
-      _selectedMinutes ~/ 5,
+      _selectedMinutes,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );

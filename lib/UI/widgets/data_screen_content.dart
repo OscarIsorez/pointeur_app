@@ -240,6 +240,11 @@ class _DataScreenContentState extends State<DataScreenContent>
                             ? sessionState.settings
                             : null;
 
+                    final monthlySummary =
+                        sessionState is WorkSessionLoadedState
+                            ? sessionState.monthlySummary
+                            : null;
+
                     // Load missing data if needed
                     if (sessionState is WorkSessionLoadedState) {
                       if (weeklyData == null) {
@@ -255,6 +260,14 @@ class _DataScreenContentState extends State<DataScreenContent>
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           context.read<WorkSessionBloc>().add(
                             LoadSettingsEvent(),
+                          );
+                        });
+                      }
+                      if (monthlySummary == null) {
+                        // Load monthly summary if missing
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          context.read<WorkSessionBloc>().add(
+                            LoadMonthlySummaryEvent(),
                           );
                         });
                       }
@@ -318,6 +331,11 @@ class _DataScreenContentState extends State<DataScreenContent>
 
                           // Weekly overtime summary
                           _buildWeeklyOvertimeSummary(weeklyData, settings),
+
+                          const SizedBox(height: 16),
+
+                          // Monthly summary
+                          _buildMonthlySummary(monthlySummary, settings),
                         ],
                       ),
                     );
@@ -486,6 +504,205 @@ class _DataScreenContentState extends State<DataScreenContent>
                   Text(
                     isZero
                         ? 'Objectif atteint'
+                        : (isPositive
+                            ? 'Heures supplémentaires'
+                            : 'Heures manquantes'),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isZero
+                            ? Icons.check_circle
+                            : (isPositive
+                                ? Icons.trending_up
+                                : Icons.trending_down),
+                        color:
+                            isZero
+                                ? Colors.white
+                                : (isPositive ? Colors.green : Colors.orange),
+                        size: 16,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isZero
+                            ? '✓'
+                            : '${isPositive ? '+' : '-'}$formattedOvertime',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              isZero
+                                  ? Colors.white
+                                  : (isPositive ? Colors.green : Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build monthly summary widget
+  Widget _buildMonthlySummary(dynamic monthlySummary, dynamic settings) {
+    if (monthlySummary == null || settings == null) {
+      return const SizedBox();
+    }
+
+    // Calculate total worked hours and expected hours this month
+    final totalWorkedHours = monthlySummary.totalWorkedHours ?? 0.0;
+    final totalExpectedHours = monthlySummary.totalExpectedHours ?? 0.0;
+    final workingDaysCount = monthlySummary.workingDaysCount ?? 0;
+    final completedDaysCount = monthlySummary.completedDaysCount ?? 0;
+
+    // Calculate overtime (can be negative)
+    final overtimeHours = totalWorkedHours - totalExpectedHours;
+    final isPositive = overtimeHours > 0;
+    final isZero = overtimeHours.abs() < 0.05; // Less than 3 minutes difference
+    final absOvertimeHours = overtimeHours.abs();
+
+    // Format the overtime duration
+    final overtimeDuration = Duration(
+      hours: absOvertimeHours.floor(),
+      minutes: ((absOvertimeHours - absOvertimeHours.floor()) * 60).round(),
+    );
+    final formattedOvertime = WorkTimeService().formatDuration(
+      overtimeDuration,
+    );
+
+    // Calculate completion percentage
+    final completionPercentage =
+        workingDaysCount > 0
+            ? (completedDaysCount / workingDaysCount * 100).round()
+            : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Bilan mensuel',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Progress bar for days completed
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Jours travaillés: $completedDaysCount / $workingDaysCount',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value:
+                          workingDaysCount > 0
+                              ? completedDaysCount / workingDaysCount
+                              : 0,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        completionPercentage >= 80
+                            ? Colors.green
+                            : completionPercentage >= 60
+                            ? Colors.orange
+                            : Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                '$completionPercentage%',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color:
+                      completionPercentage >= 80
+                          ? Colors.green
+                          : completionPercentage >= 60
+                          ? Colors.orange
+                          : Colors.red,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Time summary
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Temps travaillé ce mois',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    Text(
+                      WorkTimeService().formatDuration(
+                        Duration(
+                          hours: totalWorkedHours.floor(),
+                          minutes:
+                              ((totalWorkedHours - totalWorkedHours.floor()) *
+                                      60)
+                                  .round(),
+                        ),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Attendu: ${WorkTimeService().formatDuration(Duration(hours: totalExpectedHours.floor(), minutes: ((totalExpectedHours - totalExpectedHours.floor()) * 60).round()))}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    isZero
+                        ? 'Objectif mensuel atteint'
                         : (isPositive
                             ? 'Heures supplémentaires'
                             : 'Heures manquantes'),
