@@ -57,4 +57,6 @@ class LoadWeeklyDataEvent extends WorkSessionEvent {}
 
 class LoadMonthlySummaryEvent extends WorkSessionEvent {}
 
+class LoadAllWorkDataEvent extends WorkSessionEvent {}
+
 class RefreshAllDataEvent extends WorkSessionEvent {}

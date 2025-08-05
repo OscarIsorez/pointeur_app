@@ -7,7 +7,7 @@ import 'package:pointeur_app/bloc/work_session_states.dart';
 import 'package:pointeur_app/bloc/settings_bloc.dart';
 import 'package:pointeur_app/bloc/settings_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
-import 'package:pointeur_app/UI/widgets/weekly_work_chart.dart';
+import 'package:pointeur_app/UI/widgets/work_time_chart.dart';
 import 'dart:async';
 
 class DataScreenContent extends StatefulWidget {
@@ -255,6 +255,11 @@ class _DataScreenContentState extends State<DataScreenContent>
                               ? sessionState.weeklyData
                               : null;
 
+                      final allWorkData =
+                          sessionState is WorkSessionLoadedState
+                              ? sessionState.allWorkData
+                              : null;
+
                       final settings =
                           sessionState is WorkSessionLoadedState
                               ? sessionState.settings
@@ -272,6 +277,14 @@ class _DataScreenContentState extends State<DataScreenContent>
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             context.read<WorkSessionBloc>().add(
                               LoadWeeklyDataEvent(),
+                            );
+                          });
+                        }
+                        if (allWorkData == null) {
+                          // Load all work data if missing
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            context.read<WorkSessionBloc>().add(
+                              LoadAllWorkDataEvent(),
                             );
                           });
                         }
@@ -346,9 +359,9 @@ class _DataScreenContentState extends State<DataScreenContent>
 
                             const SizedBox(height: 16),
 
-                            // Weekly work time chart
-                            WeeklyWorkTimeChart(
-                              weeklyData: weeklyData,
+                            // Work time chart with period selector
+                            WorkTimeChart(
+                              allWorkData: allWorkData,
                               settings: settings,
                             ),
 

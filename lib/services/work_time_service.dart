@@ -135,17 +135,20 @@ class WorkTimeService {
     final sessions = await _sessionRepository.getCurrentMonthSessions();
     final settings = await getSettings();
 
-    final totalWorked = sessions.fold<Duration>(
+    // Only count completed sessions for consistency
+    final completedSessions = sessions.where((s) => s.isComplete).toList();
+
+    final totalWorked = completedSessions.fold<Duration>(
       Duration.zero,
       (sum, session) => sum + session.totalWorkTime,
     );
 
-    final totalBreaks = sessions.fold<Duration>(
+    final totalBreaks = completedSessions.fold<Duration>(
       Duration.zero,
       (sum, session) => sum + session.totalBreakTime,
     );
 
-    final workingDays = sessions.where((s) => s.isComplete).length;
+    final workingDays = completedSessions.length;
     final expectedTotal = Duration(
       milliseconds: settings.dailyWorkDuration.inMilliseconds * workingDays,
     );
@@ -165,6 +168,28 @@ class WorkTimeService {
               )
               : Duration.zero,
     );
+  }
+
+  /// Get all work data for charts (all available sessions)
+  Future<List<WorkDayData>> getAllWorkData() async {
+    final sessions = await _sessionRepository.fetchAll();
+    final settings = await getSettings();
+
+    return sessions.map((session) {
+      final date = session.date;
+      final totalWork = session.totalWorkTime;
+      final expectedWork = settings.dailyWorkDuration;
+      final surplus = totalWork - expectedWork;
+
+      return WorkDayData(
+        date: date,
+        totalWorkTime: totalWork,
+        expectedWorkTime: expectedWork,
+        surplus: surplus,
+        totalBreakTime: session.totalBreakTime,
+        isComplete: session.isComplete,
+      );
+    }).toList();
   }
 
   /// Format duration to hours and minutes string

@@ -17,6 +17,7 @@ class WorkSessionLoadingState extends WorkSessionState {
   final WorkStatus? lastKnownStatus;
   final WorkSettings? lastKnownSettings;
   final List<WorkDayData>? lastKnownWeeklyData;
+  final List<WorkDayData>? lastKnownAllWorkData;
   final WorkSummary? lastKnownMonthlySummary;
 
   const WorkSessionLoadingState({
@@ -24,6 +25,7 @@ class WorkSessionLoadingState extends WorkSessionState {
     this.lastKnownStatus,
     this.lastKnownSettings,
     this.lastKnownWeeklyData,
+    this.lastKnownAllWorkData,
     this.lastKnownMonthlySummary,
   });
 
@@ -33,6 +35,7 @@ class WorkSessionLoadingState extends WorkSessionState {
     lastKnownStatus,
     lastKnownSettings,
     lastKnownWeeklyData,
+    lastKnownAllWorkData,
     lastKnownMonthlySummary,
   ];
 }
@@ -42,6 +45,7 @@ class WorkSessionLoadedState extends WorkSessionState {
   final WorkStatus currentStatus;
   final WorkSettings? settings;
   final List<WorkDayData>? weeklyData;
+  final List<WorkDayData>? allWorkData;
   final WorkSummary? monthlySummary;
   final String? successMessage;
 
@@ -50,6 +54,7 @@ class WorkSessionLoadedState extends WorkSessionState {
     required this.currentStatus,
     this.settings,
     this.weeklyData,
+    this.allWorkData,
     this.monthlySummary,
     this.successMessage,
   });
@@ -59,6 +64,7 @@ class WorkSessionLoadedState extends WorkSessionState {
     WorkStatus? currentStatus,
     WorkSettings? settings,
     List<WorkDayData>? weeklyData,
+    List<WorkDayData>? allWorkData,
     WorkSummary? monthlySummary,
     String? successMessage,
     bool clearSuccessMessage = false,
@@ -68,6 +74,7 @@ class WorkSessionLoadedState extends WorkSessionState {
       currentStatus: currentStatus ?? this.currentStatus,
       settings: settings ?? this.settings,
       weeklyData: weeklyData ?? this.weeklyData,
+      allWorkData: allWorkData ?? this.allWorkData,
       monthlySummary: monthlySummary ?? this.monthlySummary,
       successMessage:
           clearSuccessMessage ? null : (successMessage ?? this.successMessage),
@@ -80,6 +87,7 @@ class WorkSessionLoadedState extends WorkSessionState {
     currentStatus,
     settings,
     weeklyData,
+    allWorkData,
     monthlySummary,
     successMessage,
   ];
@@ -91,6 +99,7 @@ class WorkSessionErrorState extends WorkSessionState {
   final WorkStatus? lastKnownStatus;
   final WorkSettings? lastKnownSettings;
   final List<WorkDayData>? lastKnownWeeklyData;
+  final List<WorkDayData>? lastKnownAllWorkData;
   final WorkSummary? lastKnownMonthlySummary;
 
   const WorkSessionErrorState(
@@ -99,6 +108,7 @@ class WorkSessionErrorState extends WorkSessionState {
     this.lastKnownStatus,
     this.lastKnownSettings,
     this.lastKnownWeeklyData,
+    this.lastKnownAllWorkData,
     this.lastKnownMonthlySummary,
   });
 
@@ -109,6 +119,7 @@ class WorkSessionErrorState extends WorkSessionState {
     lastKnownStatus,
     lastKnownSettings,
     lastKnownWeeklyData,
+    lastKnownAllWorkData,
     lastKnownMonthlySummary,
   ];
 }

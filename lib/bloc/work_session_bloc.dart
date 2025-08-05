@@ -26,6 +26,7 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
     // Analytics/Data events
     on<LoadWeeklyDataEvent>(_onLoadWeeklyData);
     on<LoadMonthlySummaryEvent>(_onLoadMonthlySummary);
+    on<LoadAllWorkDataEvent>(_onLoadAllWorkData);
     on<RefreshAllDataEvent>(_onRefreshAllData);
   }
 
@@ -746,6 +747,52 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
     }
   }
 
+  Future<void> _onLoadAllWorkData(
+    LoadAllWorkDataEvent event,
+    Emitter<WorkSessionState> emit,
+  ) async {
+    try {
+      final allWorkData = await _workTimeService.getAllWorkData();
+
+      if (state is WorkSessionLoadedState) {
+        final currentState = state as WorkSessionLoadedState;
+        emit(currentState.copyWith(allWorkData: allWorkData));
+      } else {
+        // If we don't have a loaded state yet, also load the basic session data
+        final session = await _workTimeService.getTodaySession();
+        final status = await _workTimeService.getCurrentStatus();
+        emit(
+          WorkSessionLoadedState(
+            todaySession: session,
+            currentStatus: status,
+            allWorkData: allWorkData,
+          ),
+        );
+      }
+    } catch (e) {
+      final currentState = state;
+      if (currentState is WorkSessionLoadedState) {
+        emit(
+          WorkSessionErrorState(
+            'Échec du chargement de toutes les données: ${e.toString()}',
+            lastKnownSession: currentState.todaySession,
+            lastKnownStatus: currentState.currentStatus,
+            lastKnownSettings: currentState.settings,
+            lastKnownWeeklyData: currentState.weeklyData,
+            lastKnownAllWorkData: currentState.allWorkData,
+            lastKnownMonthlySummary: currentState.monthlySummary,
+          ),
+        );
+      } else {
+        emit(
+          WorkSessionErrorState(
+            'Échec du chargement de toutes les données: ${e.toString()}',
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _onRefreshAllData(
     RefreshAllDataEvent event,
     Emitter<WorkSessionState> emit,
@@ -756,6 +803,7 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
       final status = await _workTimeService.getCurrentStatus();
       final settings = await _workTimeService.getSettings();
       final weeklyData = await _workTimeService.getWeeklyWorkData();
+      final allWorkData = await _workTimeService.getAllWorkData();
       final monthlySummary = await _workTimeService.getMonthlyWorkSummary();
 
       emit(
@@ -764,6 +812,7 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
           currentStatus: status,
           settings: settings,
           weeklyData: weeklyData,
+          allWorkData: allWorkData,
           monthlySummary: monthlySummary,
         ),
       );
