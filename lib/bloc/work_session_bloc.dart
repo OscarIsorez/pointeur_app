@@ -21,6 +21,7 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
     // Settings events
     on<LoadSettingsEvent>(_onLoadSettings);
     on<UpdateSettingsEvent>(_onUpdateSettings);
+    on<UpdateWorkSessionSettingsEvent>(_onUpdateWorkSessionSettings);
 
     // Analytics/Data events
     on<LoadWeeklyDataEvent>(_onLoadWeeklyData);
@@ -641,6 +642,16 @@ class WorkSessionBloc extends Bloc<WorkSessionEvent, WorkSessionState> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _onUpdateWorkSessionSettings(
+    UpdateWorkSessionSettingsEvent event,
+    Emitter<WorkSessionState> emit,
+  ) async {
+    if (state is WorkSessionLoadedState) {
+      final currentState = state as WorkSessionLoadedState;
+      emit(currentState.copyWith(settings: event.settings));
     }
   }
 

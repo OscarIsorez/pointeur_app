@@ -43,6 +43,15 @@ class UpdateSettingsEvent extends WorkSessionEvent {
   List<Object?> get props => [settings];
 }
 
+class UpdateWorkSessionSettingsEvent extends WorkSessionEvent {
+  final WorkSettings settings;
+
+  const UpdateWorkSessionSettingsEvent(this.settings);
+
+  @override
+  List<Object?> get props => [settings];
+}
+
 // Analytics/Data events
 class LoadWeeklyDataEvent extends WorkSessionEvent {}
 

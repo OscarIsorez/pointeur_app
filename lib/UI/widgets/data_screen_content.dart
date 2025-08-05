@@ -4,6 +4,8 @@ import 'package:pointeur_app/theme/app_colors.dart';
 import 'package:pointeur_app/bloc/work_session_bloc.dart';
 import 'package:pointeur_app/bloc/work_session_events.dart';
 import 'package:pointeur_app/bloc/work_session_states.dart';
+import 'package:pointeur_app/bloc/settings_bloc.dart';
+import 'package:pointeur_app/bloc/settings_states.dart';
 import 'package:pointeur_app/services/work_time_service.dart';
 import 'package:pointeur_app/UI/widgets/weekly_work_chart.dart';
 import 'dart:async';
@@ -125,224 +127,248 @@ class _DataScreenContentState extends State<DataScreenContent>
         ),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.bar_chart_rounded,
-                      size: 32,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      'Données',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+        child: MultiBlocListener(
+          listeners: [
+            // Listen to SettingsBloc changes and update WorkSessionBloc
+            BlocListener<SettingsBloc, SettingsState>(
+              listener: (context, settingsState) {
+                if (settingsState is SettingsLoadedState) {
+                  // When settings are updated, update WorkSessionBloc with new settings
+                  final workSessionState =
+                      context.read<WorkSessionBloc>().state;
+                  if (workSessionState is WorkSessionLoadedState) {
+                    context.read<WorkSessionBloc>().add(
+                      UpdateWorkSessionSettingsEvent(settingsState.settings),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.bar_chart_rounded,
+                        size: 32,
                         color: Colors.white,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 16),
+                      Text(
+                        'Données',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-              // Main data content
-              Expanded(
-                child: BlocConsumer<WorkSessionBloc, WorkSessionState>(
-                  listener: (context, sessionState) {
-                    // Manage work time timer based on session state
-                    if (sessionState is WorkSessionLoadedState) {
-                      final session = sessionState.todaySession;
-                      final isActive =
-                          session.arrivalTime != null &&
-                          session.departureTime == null;
+                // Main data content
+                Expanded(
+                  child: BlocConsumer<WorkSessionBloc, WorkSessionState>(
+                    listener: (context, sessionState) {
+                      // Manage work time timer based on session state
+                      if (sessionState is WorkSessionLoadedState) {
+                        final session = sessionState.todaySession;
+                        final isActive =
+                            session.arrivalTime != null &&
+                            session.departureTime == null;
 
-                      if (isActive) {
-                        _startWorkTimeTimer(session);
+                        if (isActive) {
+                          _startWorkTimeTimer(session);
+                        } else {
+                          _stopWorkTimeTimer();
+                        }
                       } else {
                         _stopWorkTimeTimer();
                       }
-                    } else {
-                      _stopWorkTimeTimer();
-                    }
-                  },
-                  builder: (context, sessionState) {
-                    // Handle loading states
-                    if (sessionState is WorkSessionLoadingState) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                    },
+                    builder: (context, sessionState) {
+                      // Handle loading states
+                      if (sessionState is WorkSessionLoadingState) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
-                        ),
-                      );
-                    }
+                        );
+                      }
 
-                    // Handle error states
-                    if (sessionState is WorkSessionErrorState) {
-                      return Center(
+                      // Handle error states
+                      if (sessionState is WorkSessionErrorState) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Erreur',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                sessionState.message,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white.withValues(alpha: 0.8),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      // Extract data from session state
+                      final todaySession =
+                          sessionState is WorkSessionLoadedState
+                              ? sessionState.todaySession
+                              : null;
+
+                      final weeklyData =
+                          sessionState is WorkSessionLoadedState
+                              ? sessionState.weeklyData
+                              : null;
+
+                      final settings =
+                          sessionState is WorkSessionLoadedState
+                              ? sessionState.settings
+                              : null;
+
+                      final monthlySummary =
+                          sessionState is WorkSessionLoadedState
+                              ? sessionState.monthlySummary
+                              : null;
+
+                      // Load missing data if needed
+                      if (sessionState is WorkSessionLoadedState) {
+                        if (weeklyData == null) {
+                          // Load weekly data if missing
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            context.read<WorkSessionBloc>().add(
+                              LoadWeeklyDataEvent(),
+                            );
+                          });
+                        }
+                        if (settings == null) {
+                          // Load settings if missing
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            context.read<WorkSessionBloc>().add(
+                              LoadSettingsEvent(),
+                            );
+                          });
+                        }
+                        if (monthlySummary == null) {
+                          // Load monthly summary if missing
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            context.read<WorkSessionBloc>().add(
+                              LoadMonthlySummaryEvent(),
+                            );
+                          });
+                        }
+                      }
+
+                      return SingleChildScrollView(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 64,
-                              color: Colors.white.withValues(alpha: 0.7),
+                            // Today's summary
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Aujourd\'hui',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildStatCard(
+                                        'Temps travaillé',
+                                        WorkTimeService().formatDuration(
+                                          todaySession != null
+                                              ? _getCurrentWorkTime(
+                                                todaySession,
+                                              )
+                                              : Duration.zero,
+                                        ),
+                                        Icons.access_time,
+                                      ),
+                                      _buildStatCard(
+                                        'Pauses',
+                                        _formatBreaksInfo(
+                                          todaySession,
+                                          settings,
+                                        ),
+                                        Icons.coffee,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
+
                             const SizedBox(height: 16),
-                            Text(
-                              'Erreur',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+
+                            // Weekly work time chart
+                            WeeklyWorkTimeChart(
+                              weeklyData: weeklyData,
+                              settings: settings,
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              sessionState.message,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.white.withValues(alpha: 0.8),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Weekly overtime summary
+                            _buildWeeklyOvertimeSummary(weeklyData, settings),
+
+                            const SizedBox(height: 16),
+
+                            // Monthly summary
+                            _buildMonthlySummary(monthlySummary, settings),
                           ],
                         ),
                       );
-                    }
-
-                    // Extract data from session state
-                    final todaySession =
-                        sessionState is WorkSessionLoadedState
-                            ? sessionState.todaySession
-                            : null;
-
-                    final weeklyData =
-                        sessionState is WorkSessionLoadedState
-                            ? sessionState.weeklyData
-                            : null;
-
-                    final settings =
-                        sessionState is WorkSessionLoadedState
-                            ? sessionState.settings
-                            : null;
-
-                    final monthlySummary =
-                        sessionState is WorkSessionLoadedState
-                            ? sessionState.monthlySummary
-                            : null;
-
-                    // Load missing data if needed
-                    if (sessionState is WorkSessionLoadedState) {
-                      if (weeklyData == null) {
-                        // Load weekly data if missing
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          context.read<WorkSessionBloc>().add(
-                            LoadWeeklyDataEvent(),
-                          );
-                        });
-                      }
-                      if (settings == null) {
-                        // Load settings if missing
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          context.read<WorkSessionBloc>().add(
-                            LoadSettingsEvent(),
-                          );
-                        });
-                      }
-                      if (monthlySummary == null) {
-                        // Load monthly summary if missing
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          context.read<WorkSessionBloc>().add(
-                            LoadMonthlySummaryEvent(),
-                          );
-                        });
-                      }
-                    }
-
-                    return SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          // Today's summary
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Aujourd\'hui',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildStatCard(
-                                      'Temps travaillé',
-                                      WorkTimeService().formatDuration(
-                                        todaySession != null
-                                            ? _getCurrentWorkTime(todaySession)
-                                            : Duration.zero,
-                                      ),
-                                      Icons.access_time,
-                                    ),
-                                    _buildStatCard(
-                                      'Pauses',
-                                      _formatBreaksInfo(todaySession, settings),
-                                      Icons.coffee,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Weekly work time chart
-                          WeeklyWorkTimeChart(
-                            weeklyData: weeklyData,
-                            settings: settings,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // Weekly overtime summary
-                          _buildWeeklyOvertimeSummary(weeklyData, settings),
-
-                          const SizedBox(height: 16),
-
-                          // Monthly summary
-                          _buildMonthlySummary(monthlySummary, settings),
-                        ],
-                      ),
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -559,10 +585,12 @@ class _DataScreenContentState extends State<DataScreenContent>
     }
 
     // Calculate total worked hours and expected hours this month
-    final totalWorkedHours = monthlySummary.totalWorkedHours ?? 0.0;
-    final totalExpectedHours = monthlySummary.totalExpectedHours ?? 0.0;
-    final workingDaysCount = monthlySummary.workingDaysCount ?? 0;
-    final completedDaysCount = monthlySummary.completedDaysCount ?? 0;
+    final totalWorkedHours = monthlySummary.totalWorkHours ?? 0.0;
+    final totalExpectedHours = monthlySummary.expectedWorkHours ?? 0.0;
+    final workingDaysCount = monthlySummary.workingDays ?? 0;
+    final completedDaysCount =
+        monthlySummary.workingDays ??
+        0; // Use same value since WorkSummary only tracks completed days
 
     // Calculate overtime (can be negative)
     final overtimeHours = totalWorkedHours - totalExpectedHours;
